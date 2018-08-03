@@ -127,8 +127,32 @@ namespace Sauvignon_in_Stardew
         * END ENTRY
         * 
         */
+        
+        
+        /*
+         * GET ALL GAME LOCATIONS INCLUDING CUSTOM ONES
+         * From PathosChild
+         */ 
+        public static IEnumerable<GameLocation> GetLocations()
+        {
+            return Game1.locations
+                .Concat(
+                    from location in Game1.locations.OfType<BuildableGameLocation>()
+                    from building in location.buildings
+                    where building.indoors.Value != null
+                    select building.indoors.Value
+                );
+        }
+        /*
+         * END GET GAME LOCATIONS
+         * 
+         */
 
-
+        
+        /*
+        *SET BUILDING TEXTURE ON SEASON
+        *
+        */
         public void SetSeasonalBuildingTexture()
         {
             if (Game1.hasLoadedGame)
@@ -136,7 +160,10 @@ namespace Sauvignon_in_Stardew
                 Winery_outdoors = helper.Content.Load<Texture2D>($"assets/Winery_outside_{Game1.currentSeason}.png", ContentSource.ModFolder);
             }
         }
-
+        /*
+        *END SEASON TEXTURE
+        *
+        */
 
 
 
@@ -409,6 +436,8 @@ namespace Sauvignon_in_Stardew
         public void TimeEvents_AfterDayStarted_Casks(object sender, EventArgs e)
         {
             //Game1.activeClickableMenu = new LevelUpMenu(0, 10);
+            
+            //check for old wine in player inventory
             foreach(Item item in Game1.player.Items)
             {
                 if(item.ParentSheetIndex == 348 && item.Category != -77)
@@ -416,7 +445,9 @@ namespace Sauvignon_in_Stardew
                     item.Category = -77;
                 }
             }
-            foreach(GameLocation location in Game1.locations)
+            
+            //check for old wine everywhere else
+            foreach (GameLocation location in ModEntry.GetLocations())
             {
                 foreach(SObject obj in location.Objects.Values)
                 {
@@ -430,8 +461,62 @@ namespace Sauvignon_in_Stardew
                             }
                         }
                     }
+                    else if(obj.ParentSheetIndex == 165 && obj.heldObject.Value is Chest autoGrabberStorage)
+                    {
+                        foreach (Item item in autoGrabberStorage.items)
+                        {
+                            if (item.ParentSheetIndex == 348 && item.Category != -77)
+                            {
+                                item.Category = -77;
+                            }
+                        }
+                    }
+                    else if(obj is Cask)
+                    {
+                        if(obj.heldObject.Value.ParentSheetIndex == 348 && obj.heldObject.Value.Category != -77)
+                        {
+                            obj.heldObject.Value.Category = -77;
+                        }
+                    }                    
+                }
+                if(location is FarmHouse house)
+                {
+                    foreach(Item item in house.fridge.Value.items)
+                    {
+                        if (item.ParentSheetIndex == 348 && item.Category != -77)
+                        {
+                            item.Category = -77;
+                        }
+                    }
+                }
+                if(location is Farm farm)
+                {
+                    foreach(Building building in farm.buildings)
+                    {
+                        if(building is Mill mill)
+                        {
+                            foreach (Item item in mill.output.Value.items)
+                            {
+                                if (item.ParentSheetIndex == 348 && item.Category != -77)
+                                {
+                                    item.Category = -77;
+                                }
+                            }
+                        }
+                        else if(building is JunimoHut hut)
+                        {
+                            foreach (Item item in hut.output.Value.items)
+                            {
+                                if (item.ParentSheetIndex == 348 && item.Category != -77)
+                                {
+                                    item.Category = -77;
+                                }
+                            }
+                        }
+                    }
                 }
             }
+            //end old win check
             
             foreach (Building b in Game1.getFarm().buildings)
             {
