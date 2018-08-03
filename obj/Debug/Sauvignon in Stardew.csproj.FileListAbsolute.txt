@@ -1,0 +1,9 @@
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\bin\Debug\Sauvignon in Stardew.dll
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\bin\Debug\Sauvignon in Stardew.pdb
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\obj\Debug\Sauvignon in Stardew.csprojAssemblyReference.cache
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\obj\Debug\Sauvignon in Stardew.csproj.CoreCompileInputs.cache
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\obj\Debug\Sauvignon in Stardew.dll
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\obj\Debug\Sauvignon in Stardew.pdb
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\bin\Debug\0Harmony.dll
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\bin\Debug\0Harmony.pdb
+C:\Users\steph\source\repos\Sauvignon in Stardew\Sauvignon in Stardew\obj\Debug\Sauvignon in Stardew.csproj.CopyComplete
