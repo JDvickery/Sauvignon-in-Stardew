@@ -163,11 +163,18 @@ namespace Sauvignon_in_Stardew
             }
             if (Game1.activeClickableMenu is CarpenterMenu carpenterMenu)
             {
-                //Sets current Winery buildings to 11 width to stop overlay
+                //Sets current Winery buildings to 11 width to stop overlay and removes invisible tiles for building moving 
                 foreach (Building building in Game1.getFarm().buildings)
                 {
                     if (building.buildingType.Value == "Winery")
                     {
+                        for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
+                        {
+                            for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
+                            {
+                                Game1.getFarm().removeTile(x, y, "Buildings");
+                            }
+                        }
                         building.tilesWide.Value = 11;
                     }
                 }
@@ -214,7 +221,7 @@ namespace Sauvignon_in_Stardew
             typeof(BluePrint).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).SetValue(bluePrint, value);
         }
 
-        //sets back Winery widths to 8 for Archway walkthrough
+        //sets back Winery widths to 8 for Archway walkthrough and add back invisible tiles
         private void MenuEvents_MenuClosed(object sender, EventArgsClickableMenuClosed e)
         {
             if (e.PriorMenu is LevelUpMenu)
@@ -228,6 +235,13 @@ namespace Sauvignon_in_Stardew
                     if (building.buildingType.Value == "Winery")
                     {
                         building.tilesWide.Value = 8;
+                        for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
+                        {
+                            for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
+                            {
+                                layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID);
+                            }
+                        }
                     }
                 }
             }
