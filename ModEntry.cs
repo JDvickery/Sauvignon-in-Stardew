@@ -409,6 +409,30 @@ namespace Sauvignon_in_Stardew
         public void TimeEvents_AfterDayStarted_Casks(object sender, EventArgs e)
         {
             //Game1.activeClickableMenu = new LevelUpMenu(0, 10);
+            foreach(Item item in Game1.player.Items)
+            {
+                if(item.ParentSheetIndex == 348 && item.Category != -77)
+                {
+                    item.Category = -77;
+                }
+            }
+            foreach(GameLocation location in Game1.locations)
+            {
+                foreach(SObject obj in location.Objects.Values)
+                {
+                    if(obj is Chest c)
+                    {
+                        foreach(Item item in c.items)
+                        {
+                            if (item.ParentSheetIndex == 348 && item.Category != -77)
+                            {
+                                item.Category = -77;
+                            }
+                        }
+                    }
+                }
+            }
+            
             foreach (Building b in Game1.getFarm().buildings)
             {
                 if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
