@@ -7,8 +7,8 @@
     <ProjectGuid>{9462B13A-0E4A-422D-8194-D8ECB8A27232}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Sauvignon_in_Stardew</RootNamespace>
-    <AssemblyName>Sauvignon in Stardew</AssemblyName>
+    <RootNamespace>SauvignonInStardew</RootNamespace>
+    <AssemblyName>SauvignonInStardew</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

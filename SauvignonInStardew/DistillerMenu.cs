@@ -8,7 +8,7 @@ using StardewValley;
 using StardewValley.Menus;
 using System.Reflection;
 
-namespace Sauvignon_in_Stardew
+namespace SauvignonInStardew
 {
     class DistillerMenu : LevelUpMenu
     {
