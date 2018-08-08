@@ -46,6 +46,11 @@ namespace Sauvignon_in_Stardew
 
         public readonly Vector2 TooltipOffset = new Vector2(Game1.tileSize / 2);
         public readonly Rectangle TooltipSourceRect = new Rectangle(0, 256, 60, 60);
+
+        public string CurrentSeason;
+
+        public int bedTime;
+        public int hoursSlept;
         /*
          * END FIELDS
          * 
@@ -64,17 +69,16 @@ namespace Sauvignon_in_Stardew
 
             //Loaded Textures for outside and indside the Winery
             Winery_outdoors = helper.Content.Load<Texture2D>($"assets/Winery_outside_{Game1.currentSeason}.png", ContentSource.ModFolder);
-            SetSeasonalBuildingTexture();
             Winery_indoors = helper.Content.Load<Map>("assets/Winery.tbin", ContentSource.ModFolder);
 
             //Event for adding blueprint to carpenter menu
             MenuEvents.MenuChanged += MenuEvents_MenuChanged;
 
             //Event for Keg Speed
-            TimeEvents.TimeOfDayChanged += TimeEvents_TimeOfDayChanged_Kegs;
+            TimeEvents.TimeOfDayChanged += TimeEvents_TimeOfDayChanged;
 
             //Event for Cask Speed
-            TimeEvents.AfterDayStarted += TimeEvents_AfterDayStarted_Casks;
+            TimeEvents.AfterDayStarted += TimeEvents_AfterDayStarted;
 
             //Event for showing time remaining on hover
             GraphicsEvents.OnPostRenderEvent += GraphicsEvents_OnPostRenderEvent;
@@ -109,7 +113,7 @@ namespace Sauvignon_in_Stardew
             MethodInfo method = type.GetMethod("performObjectDropInAction");
             HarmonyMethod patchMethod = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_performObjectDropInAction)));
             harmony.Patch(method, patchMethod, null);
-
+            
             Type type2 = typeof(SObject);
             MethodInfo method2 = type2.GetMethod("getCategoryColor");
             HarmonyMethod patchMethod2 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryColor)));
@@ -127,12 +131,12 @@ namespace Sauvignon_in_Stardew
         * END ENTRY
         * 
         */
-        
-        
+
+
         /*
          * GET ALL GAME LOCATIONS INCLUDING CUSTOM ONES
          * From PathosChild
-         */ 
+         */
         public static IEnumerable<GameLocation> GetLocations()
         {
             return Game1.locations
@@ -148,24 +152,6 @@ namespace Sauvignon_in_Stardew
          * 
          */
 
-        
-        /*
-        *SET BUILDING TEXTURE ON SEASON
-        *
-        */
-        public void SetSeasonalBuildingTexture()
-        {
-            if (Game1.hasLoadedGame)
-            {
-                Winery_outdoors = helper.Content.Load<Texture2D>($"assets/Winery_outside_{Game1.currentSeason}.png", ContentSource.ModFolder);
-            }
-        }
-        /*
-        *END SEASON TEXTURE
-        *
-        */
-
-
 
         /*
          * ADD WINERY TO CARPENTER MENU
@@ -173,21 +159,16 @@ namespace Sauvignon_in_Stardew
          */
         public void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e)
         {
-            if (Game1.activeClickableMenu is LevelUpMenu lvlMenu)
+            if ( !(Game1.activeClickableMenu is DistillerMenu) && Game1.activeClickableMenu is LevelUpMenu lvlMenu && lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
             {
-                if (lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
-                {
-                    if(Game1.activeClickableMenu is DistillerMenu)
-                    {
-                        monitor.Log($"Menu is already a distiller menu");
-                    }
-                    else
-                    {
-                        monitor.Log($"Set new menu");
-                        Game1.activeClickableMenu = new DistillerMenu(0, 10);
-                    }                    
-                }
+                Game1.activeClickableMenu = new DistillerMenu(0, 10);
             }
+
+            if (e.NewMenu is DialogueBox box && box.getCurrentString().Contains("sleep for the night"))
+            {
+                bedTime = Game1.timeOfDay;
+            }
+
             if (Game1.activeClickableMenu is CarpenterMenu carpenterMenu)
             {
                 //Sets current Winery buildings to 11 width to stop overlay and removes invisible tiles for building moving 
@@ -262,6 +243,9 @@ namespace Sauvignon_in_Stardew
                     if (building.buildingType.Value == "Winery")
                     {
                         building.tilesWide.Value = 8;
+                        layer = Game1.getFarm().map.GetLayer("Buildings");
+                        tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
+                        tileID = 131;
                         for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
                         {
                             for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
@@ -345,6 +329,8 @@ namespace Sauvignon_in_Stardew
          */
         public void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
         {
+            SetItemCategory(-77);
+
             wineryCoords = this.Helper.ReadJsonFile<List<KeyValuePair<int, int>>>($"{Constants.CurrentSavePath}/Winery_Coords.json") ?? new List<KeyValuePair<int, int>>();
             foreach (Building b in Game1.getFarm().buildings)
             {
@@ -377,6 +363,33 @@ namespace Sauvignon_in_Stardew
 
         public void SaveEvents_BeforeSave(object sender, EventArgs e)
         {
+            //monitor.Log($"Time is" + Game1.timeOfDay);
+
+            //calculate time slept            
+            if (bedTime > 0)
+            {
+                hoursSlept = ((2400 - bedTime) + Game1.timeOfDay);
+                //monitor.Log($"BedTime was " + bedTime + ". Wake up time was " + Game1.timeOfDay + ". You slept " + hoursSlept/100 + ".");
+                //monitor.Log($"Time to reduce is " + Math.Round(hoursSlept * 0.3, 0));
+            }
+
+            //reduce time for kegs overnight
+            foreach (Building b in Game1.getFarm().buildings)
+            {
+                if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
+                {
+                    foreach (SObject o in b.indoors.Value.Objects.Values)
+                    {
+                        if (o.Name.Equals("Keg"))
+                        {
+                            o.MinutesUntilReady -= (int)Math.Round(hoursSlept * 0.3, 0);
+                        }
+                    }
+                }
+            }
+
+            SetItemCategory(-26);
+
             wineryCoords.Clear();
             foreach (Building b in Game1.getFarm().buildings)
             {
@@ -410,8 +423,9 @@ namespace Sauvignon_in_Stardew
          * SPEED UP KEG INSIDE WINERY
          * 
          */
-        public void TimeEvents_TimeOfDayChanged_Kegs(object sender, EventArgsIntChanged e)
+        public void TimeEvents_TimeOfDayChanged(object sender, EventArgsIntChanged e)
         {
+            //monitor.Log($"Time is " + Game1.timeOfDay + " and it is " + Game1.dayOrNight());
             foreach (Building b in Game1.getFarm().buildings)
             {
                 if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
@@ -433,91 +447,21 @@ namespace Sauvignon_in_Stardew
          * SPEED UP CASK INSIDE WINERY
          * 
          */
-        public void TimeEvents_AfterDayStarted_Casks(object sender, EventArgs e)
+        public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
-            //Game1.activeClickableMenu = new LevelUpMenu(0, 10);
-            
-            //check for old wine in player inventory
-            foreach(Item item in Game1.player.Items)
+            Game1.activeClickableMenu = new LevelUpMenu(0, 10);
+
+            //set seasonal building and reload texture
+            if(CurrentSeason != Game1.currentSeason)
             {
-                if(item.ParentSheetIndex == 348 && item.Category != -77)
-                {
-                    item.Category = -77;
-                }
-            }
-            
-            //check for old wine everywhere else
-            foreach (GameLocation location in ModEntry.GetLocations())
-            {
-                foreach(SObject obj in location.Objects.Values)
-                {
-                    if(obj is Chest c)
-                    {
-                        foreach(Item item in c.items)
-                        {
-                            if (item.ParentSheetIndex == 348 && item.Category != -77)
-                            {
-                                item.Category = -77;
-                            }
-                        }
-                    }
-                    else if(obj.ParentSheetIndex == 165 && obj.heldObject.Value is Chest autoGrabberStorage)
-                    {
-                        foreach (Item item in autoGrabberStorage.items)
-                        {
-                            if (item.ParentSheetIndex == 348 && item.Category != -77)
-                            {
-                                item.Category = -77;
-                            }
-                        }
-                    }
-                    else if(obj is Cask)
-                    {
-                        if(obj.heldObject.Value.ParentSheetIndex == 348 && obj.heldObject.Value.Category != -77)
-                        {
-                            obj.heldObject.Value.Category = -77;
-                        }
-                    }                    
-                }
-                if(location is FarmHouse house)
-                {
-                    foreach(Item item in house.fridge.Value.items)
-                    {
-                        if (item.ParentSheetIndex == 348 && item.Category != -77)
-                        {
-                            item.Category = -77;
-                        }
-                    }
-                }
-                if(location is Farm farm)
-                {
-                    foreach(Building building in farm.buildings)
-                    {
-                        if(building is Mill mill)
-                        {
-                            foreach (Item item in mill.output.Value.items)
-                            {
-                                if (item.ParentSheetIndex == 348 && item.Category != -77)
-                                {
-                                    item.Category = -77;
-                                }
-                            }
-                        }
-                        else if(building is JunimoHut hut)
-                        {
-                            foreach (Item item in hut.output.Value.items)
-                            {
-                                if (item.ParentSheetIndex == 348 && item.Category != -77)
-                                {
-                                    item.Category = -77;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            //end old win check
-            
+                //monitor.Log($"Current season is " + CurrentSeason);
+                CurrentSeason = Game1.currentSeason;
+                //monitor.Log($"Current season is now " + CurrentSeason);
+                Winery_outdoors = helper.Content.Load<Texture2D>($"assets/Winery_outside_{Game1.currentSeason}.png", ContentSource.ModFolder);
+                helper.Content.InvalidateCache("Buildings/Winery");
+            }            
+
+            //reduce time for casks
             foreach (Building b in Game1.getFarm().buildings)
             {
                 if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
@@ -532,6 +476,99 @@ namespace Sauvignon_in_Stardew
          * END SPEED UP CASK INSIDE WINERY
          * 
          */
+
+
+        /*
+        * SET ITEM CATEGORY
+        * 
+        */ 
+        public void SetItemCategory(int catID)
+        {
+            //check for old wine in player inventory
+            foreach (Item item in Game1.player.Items)
+            {
+                if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                {
+                    item.Category = catID;
+                }
+            }
+
+            //check for old wine everywhere else
+            foreach (GameLocation location in ModEntry.GetLocations())
+            {
+                foreach (SObject obj in location.Objects.Values)
+                {
+                    if (obj is Chest c)
+                    {
+                        foreach (Item item in c.items)
+                        {
+                            if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                            {
+                                item.Category = catID;
+                            }
+                        }
+                    }
+                    else if (obj.ParentSheetIndex == 165 && obj.heldObject.Value is Chest autoGrabberStorage)
+                    {
+                        foreach (Item item in autoGrabberStorage.items)
+                        {
+                            if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                            {
+                                item.Category = catID;
+                            }
+                        }
+                    }
+                    else if (obj is Cask cask)
+                    {
+                        if (cask.heldObject.Value != null && (cask.heldObject.Value.ParentSheetIndex == 348 || cask.heldObject.Value.ParentSheetIndex == 303 || cask.heldObject.Value.ParentSheetIndex == 346 || cask.heldObject.Value.ParentSheetIndex == 459) && cask.heldObject.Value.Category != catID)
+                        {
+                            cask.heldObject.Value.Category = catID;
+                        }
+                    }
+                }
+                if (location is FarmHouse house)
+                {
+                    foreach (Item item in house.fridge.Value.items)
+                    {
+                        if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                        {
+                            item.Category = catID;
+                        }
+                    }
+                }
+                if (location is Farm farm)
+                {
+                    foreach (Building building in farm.buildings)
+                    {
+                        if (building is Mill mill)
+                        {
+                            foreach (Item item in mill.output.Value.items)
+                            {
+                                if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                                {
+                                    item.Category = catID;
+                                }
+                            }
+                        }
+                        else if (building is JunimoHut hut)
+                        {
+                            foreach (Item item in hut.output.Value.items)
+                            {
+                                if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                                {
+                                    item.Category = catID;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            //end old wine check
+        }
+        /*
+         * END SET ITEM CATEGORY
+         * 
+         */ 
 
 
 
@@ -596,7 +633,7 @@ namespace Sauvignon_in_Stardew
                                 float num3;
                                 Vector2 tooltipOffset = this.TooltipOffset;
 
-                                if (obj.Name.Equals("Keg"))
+                                if (obj.Name.Equals("Keg") && obj.MinutesUntilReady > 0)
                                 {
                                     text1 = Math.Round((obj.MinutesUntilReady * 0.6) / 84, 1).ToString() + " minutes";
                                     vector2 = Game1.smallFont.MeasureString(text1);
@@ -607,7 +644,7 @@ namespace Sauvignon_in_Stardew
                                     Utility.drawTextWithShadow(Game1.spriteBatch, text1, Game1.smallFont, new Vector2((float)((double)num2 + (double)vector2_1.X) - (vector2.X - 4), (float)((double)num3 + 6.0 + 5.0)), Game1.textColor, 1f, -1f, -1, -1, 1f, 3);
                                 }
 
-                                if (obj is Cask c)
+                                if (obj is Cask c && c.daysToMature.Value > 0)
                                 {
                                     text1 = Math.Round(c.daysToMature.Value * 0.6, 1).ToString() + " days";
                                     vector2 = Game1.smallFont.MeasureString(text1);
@@ -644,10 +681,6 @@ namespace Sauvignon_in_Stardew
             {
                 return true;
             }
-            //else if (asset.AssetNameEquals("Data/ObjectInformation"))
-            //{
-            //    return true;
-            //}
             return false;
         }
 
@@ -661,10 +694,6 @@ namespace Sauvignon_in_Stardew
             {
                 return (T)(object)Winery_indoors;
             }
-            //else if (asset.AssetNameEquals("Data/ObjectInformation"))
-            //{
-            //    return (T)(object)this.Helper.Content.Load<T>("assets/ObjectInformation.xnb", ContentSource.ModFolder);
-            //}
             return (T)(object)null;
         }
         /*
@@ -677,10 +706,14 @@ namespace Sauvignon_in_Stardew
         /*
          * ASSET EDITOR
          * 
-         */ 
+         */
         public bool CanEdit<T>(IAssetInfo asset)
         {
             if (asset.AssetNameEquals("Data/ObjectInformation"))
+            {
+                return true;
+            }
+            else if (asset.AssetNameEquals("Strings/UI"))
             {
                 return true;
             }
@@ -697,11 +730,12 @@ namespace Sauvignon_in_Stardew
                 objectInfo[346] = objectInfo[346].Replace("-26", "-77");
                 objectInfo[348] = objectInfo[348].Replace("-26", "-77");
                 objectInfo[459] = objectInfo[459].Replace("-26", "-77");
+            }
+            if (asset.AssetNameEquals("Strings/UI"))
+            {
+                IDictionary<string, string> stringInfo = asset.AsDictionary<string, string>().Data;
 
-                monitor.Log($""+objectInfo[303]);
-                monitor.Log($"" + objectInfo[346]);
-                monitor.Log($"" + objectInfo[348]);
-                monitor.Log($"" + objectInfo[459]);
+                stringInfo["LevelUp_ProfessionDescription_Artisan"] = "Artisan goods (cheese, truffle oil, cloth, etc.) worth 40% more.";
             }
         }
         /*
@@ -713,7 +747,7 @@ namespace Sauvignon_in_Stardew
         /*
          * PATCH METHOD FOR HARMONY
          * Has instance of Cask and reference result manipulation. Always returns false to suppress original method.
-         */
+         */   
         public static bool Patch_performObjectDropInAction(Cask __instance, ref bool __result, Item dropIn, bool probe, Farmer who)
         {
             if (dropIn != null && dropIn is SObject && (dropIn as SObject).bigCraftable.Value || __instance.heldObject.Value != null)
@@ -828,13 +862,13 @@ namespace Sauvignon_in_Stardew
                 __result = new Color(100, 25, 190);
                 return false;
             }
-                
+
             if (__instance.Type == null && __instance.Type.Equals((object)"Arch"))
             {
                 __result = new Color(110, 0, 90);
                 return false;
             }
-                
+
             switch (__instance.Category)
             {
                 case -81:
@@ -913,13 +947,13 @@ namespace Sauvignon_in_Stardew
                 __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12847");
                 return false;
             }
-                
+
             if (__instance.Type != null && __instance.Type.Equals("Arch"))
             {
                 __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12849");
                 return false;
             }
-                
+
             switch (__instance.Category)
             {
                 case -81:
