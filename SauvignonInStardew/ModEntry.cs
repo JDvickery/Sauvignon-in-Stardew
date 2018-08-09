@@ -1,28 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Harmony;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-
+using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
+using StardewModdingAPI.Events;
+using StardewValley;
 using StardewValley.Buildings;
 using StardewValley.Locations;
 using StardewValley.Menus;
-using StardewValley;
-
-using xTile;
-
-using SObject = StardewValley.Object;
-using StardewModdingAPI.Events;
-using System.Reflection;
-
-using Harmony;
-using Microsoft.Xna.Framework.Input;
 using StardewValley.Objects;
-using System.Linq;
+using xTile;
 using xTile.Layers;
 using xTile.Tiles;
+using SObject = StardewValley.Object;
 
-namespace Sauvignon_in_Stardew
+namespace SauvignonInStardew
 {
     class ModEntry : Mod, IAssetLoader, IAssetEditor
     {
