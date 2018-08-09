@@ -165,7 +165,7 @@ namespace SauvignonInStardew
                 bedTime = Game1.timeOfDay;
             }
 
-            if (Game1.activeClickableMenu is CarpenterMenu carpenterMenu)
+            if (e.NewMenu is CarpenterMenu)
             {
                 //Sets current Winery buildings to 11 width to stop overlay and removes invisible tiles for building moving 
                 foreach (Building building in Game1.getFarm().buildings)
@@ -182,7 +182,7 @@ namespace SauvignonInStardew
                         building.tilesWide.Value = 11;
                     }
                 }
-                if (!IsMagical(carpenterMenu) && !HasBluePrint(carpenterMenu))
+                if (!IsMagical(e.NewMenu) && !HasBluePrint(e.NewMenu))
                 {
                     BluePrint wineryBluePrint = new BluePrint("Slime Hutch")
                     {
@@ -200,29 +200,32 @@ namespace SauvignonInStardew
                     SetBluePrintField(wineryBluePrint, "textureName", "Buildings\\Winery");
                     SetBluePrintField(wineryBluePrint, "texture", Game1.content.Load<Texture2D>(wineryBluePrint.textureName));
 
-                    GetBluePrints(carpenterMenu).Add(wineryBluePrint);
+                    GetBluePrints(e.NewMenu).Add(wineryBluePrint);
                 }
             }
         }
 
-        public static bool IsMagical(CarpenterMenu carpenterMenu)
+        public static bool IsMagical(IClickableMenu carpenterMenu)
         {
-            return (bool)typeof(CarpenterMenu).GetField("magicalConstruction", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(carpenterMenu);
+            return helper.Reflection.GetField<bool>(carpenterMenu, "magicalConstruction").GetValue();
+            //return (bool)typeof(CarpenterMenu).GetField("magicalConstruction", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(carpenterMenu);
         }
 
-        public static bool HasBluePrint(CarpenterMenu carpenterMenu)
+        public static bool HasBluePrint(IClickableMenu carpenterMenu)
         {
             return GetBluePrints(carpenterMenu).Exists(bluePrint => bluePrint.name == "Winery");
         }
 
-        public static List<BluePrint> GetBluePrints(CarpenterMenu carpenterMenu)
+        public static List<BluePrint> GetBluePrints(IClickableMenu carpenterMenu)
         {
-            return (List<BluePrint>)typeof(CarpenterMenu).GetField("blueprints", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(carpenterMenu);
+            return helper.Reflection.GetField<List<BluePrint>>(carpenterMenu, "blueprints").GetValue();
+            //return (List<BluePrint>)typeof(CarpenterMenu).GetField("blueprints", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(carpenterMenu);
         }
 
         public static void SetBluePrintField(BluePrint bluePrint, string field, object value)
         {
-            typeof(BluePrint).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).SetValue(bluePrint, value);
+            helper.Reflection.GetField<object>(bluePrint, field).SetValue(value);
+            //typeof(BluePrint).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).SetValue(bluePrint, value);
         }
 
         //sets back Winery widths to 8 for Archway walkthrough and add back invisible tiles
