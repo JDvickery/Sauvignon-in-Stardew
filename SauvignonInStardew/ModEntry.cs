@@ -1,24 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using Harmony;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
+
 using StardewModdingAPI;
-using StardewModdingAPI.Events;
-using StardewValley;
 using StardewValley.Buildings;
 using StardewValley.Locations;
 using StardewValley.Menus;
-using StardewValley.Objects;
+using StardewValley;
+
 using xTile;
+
+using SObject = StardewValley.Object;
+using StardewModdingAPI.Events;
+using System.Reflection;
+
+using Harmony;
+using Microsoft.Xna.Framework.Input;
+using StardewValley.Objects;
+using System.Linq;
 using xTile.Layers;
 using xTile.Tiles;
-using SObject = StardewValley.Object;
 
-namespace SauvignonInStardew
+namespace Sauvignon_in_Stardew
 {
     class ModEntry : Mod, IAssetLoader, IAssetEditor
     {
@@ -47,6 +51,7 @@ namespace SauvignonInStardew
 
         public int bedTime;
         public int hoursSlept;
+        public bool isDistiller;
         /*
          * END FIELDS
          * 
@@ -109,7 +114,7 @@ namespace SauvignonInStardew
             MethodInfo method = type.GetMethod("performObjectDropInAction");
             HarmonyMethod patchMethod = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_performObjectDropInAction)));
             harmony.Patch(method, patchMethod, null);
-            
+            /*
             Type type2 = typeof(SObject);
             MethodInfo method2 = type2.GetMethod("getCategoryColor");
             HarmonyMethod patchMethod2 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryColor)));
@@ -118,7 +123,7 @@ namespace SauvignonInStardew
             MethodInfo method3 = type2.GetMethod("getCategoryName");
             HarmonyMethod patchMethod3 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryName)));
             harmony.Patch(method3, patchMethod3, null);
-            /*
+            *
              * END OF HARMONY PATCHING
              * 
              */
@@ -155,10 +160,13 @@ namespace SauvignonInStardew
          */
         public void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e)
         {
-            if ( !(Game1.activeClickableMenu is DistillerMenu) && Game1.activeClickableMenu is LevelUpMenu lvlMenu && lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
+            //monitor.Log($"Current menu type is " + e.NewMenu.GetType().ToString());
+            /*
+            if (!(Game1.activeClickableMenu is DistillerMenu) && Game1.activeClickableMenu is LevelUpMenu lvlMenu && lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
             {
                 Game1.activeClickableMenu = new DistillerMenu(0, 10);
             }
+            */
 
             if (e.NewMenu is DialogueBox box && box.getCurrentString().Contains("sleep for the night"))
             {
@@ -170,16 +178,9 @@ namespace SauvignonInStardew
                 //Sets current Winery buildings to 11 width to stop overlay and removes invisible tiles for building moving 
                 foreach (Building building in Game1.getFarm().buildings)
                 {
-                    if (building.buildingType.Value == "Winery")
+                    if (building.indoors.Value != null && building.buildingType.Value.Equals("Winery"))
                     {
-                        for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
-                        {
-                            for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
-                            {
-                                Game1.getFarm().removeTile(x, y, "Buildings");
-                            }
-                        }
-                        building.tilesWide.Value = 11;
+                        RemoveArch(building);
                     }
                 }
                 if (!IsMagical(e.NewMenu) && !HasBluePrint(e.NewMenu))
@@ -205,20 +206,20 @@ namespace SauvignonInStardew
             }
         }
 
-        public static bool IsMagical(IClickableMenu carpenterMenu)
+        public static bool IsMagical(IClickableMenu menu)
         {
-            return helper.Reflection.GetField<bool>(carpenterMenu, "magicalConstruction").GetValue();
+            return helper.Reflection.GetField<bool>(menu, "magicalConstruction").GetValue();
             //return (bool)typeof(CarpenterMenu).GetField("magicalConstruction", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(carpenterMenu);
         }
 
-        public static bool HasBluePrint(IClickableMenu carpenterMenu)
+        public static bool HasBluePrint(IClickableMenu menu)
         {
-            return GetBluePrints(carpenterMenu).Exists(bluePrint => bluePrint.name == "Winery");
+            return GetBluePrints(menu).Exists(bluePrint => bluePrint.name == "Winery");
         }
 
-        public static List<BluePrint> GetBluePrints(IClickableMenu carpenterMenu)
+        public static List<BluePrint> GetBluePrints(IClickableMenu menu)
         {
-            return helper.Reflection.GetField<List<BluePrint>>(carpenterMenu, "blueprints").GetValue();
+            return helper.Reflection.GetField<List<BluePrint>>(menu, "blueprints").GetValue();
             //return (List<BluePrint>)typeof(CarpenterMenu).GetField("blueprints", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).GetValue(carpenterMenu);
         }
 
@@ -231,27 +232,19 @@ namespace SauvignonInStardew
         //sets back Winery widths to 8 for Archway walkthrough and add back invisible tiles
         private void MenuEvents_MenuClosed(object sender, EventArgsClickableMenuClosed e)
         {
+            /*
             if (e.PriorMenu is LevelUpMenu)
             {
                 monitor.Log($"" + Game1.player.professions.ToString());
             }
+            */
             if (e.PriorMenu is CarpenterMenu)
             {
-                foreach (Building building in Game1.getFarm().buildings)
+                foreach(Building building in Game1.getFarm().buildings)
                 {
-                    if (building.buildingType.Value == "Winery")
+                    if(building.indoors.Value != null && building.buildingType.Value.Equals("Winery"))
                     {
-                        building.tilesWide.Value = 8;
-                        layer = Game1.getFarm().map.GetLayer("Buildings");
-                        tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
-                        tileID = 131;
-                        for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
-                        {
-                            for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
-                            {
-                                layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID);
-                            }
-                        }
+                        AddArch(building);
                     }
                 }
             }
@@ -263,6 +256,47 @@ namespace SauvignonInStardew
 
 
 
+        /*
+        * ADD AND REMOVE ARCHWAY
+        * 
+        */ 
+        public void AddArch(Building building)
+        {
+            building.tilesWide.Value = 8;
+            layer = Game1.getFarm().map.GetLayer("Buildings");
+            tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
+            tileID = 131;
+            for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
+            {
+                for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
+                {
+                    layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID);
+                }
+            }
+            if (building.daysOfConstructionLeft.Value > 0)
+            {
+                building.tilesWide.Value = 11;
+            }
+        }
+
+        public void RemoveArch(Building building)
+        {
+            building.tilesWide.Value = 11;
+            for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
+            {
+                for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
+                {
+                    Game1.getFarm().removeTile(x, y, "Buildings");
+                }
+            }
+        }
+        /*
+        * END ADD AND REMOVE ARCHWAY
+        * 
+        */
+
+
+
 
         /*
          * EDIT WINERY WIDTH
@@ -270,50 +304,20 @@ namespace SauvignonInStardew
          */
         public void LocationEvents_BuildingsChanged(object sender, EventArgsLocationBuildingsChanged e)
         {
-            foreach (Building building in e.Added)
+            foreach(Building building in e.Added)
             {
-                if (building.buildingType.Value == "Winery")
+                if(building.indoors.Value != null && building.buildingType.Value == "Winery")
                 {
-                    foreach (Building b in Game1.getFarm().buildings)
-                    {
-                        if (b.buildingType.Value == "Winery")
-                        {
-                            b.tilesWide.Value = 8;
-                            //monitor.Log($"" + b.buildingType.Value + " has width of " + b.tilesWide.Value);
-                            layer = Game1.getFarm().map.GetLayer("Buildings");
-                            tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
-                            tileID = 131;
-                            for (int x = b.tileX.Value + 9; x < b.tileX.Value + 11; x++)
-                            {
-                                for (int y = b.tileY.Value; y < b.tileY.Value + 6; y++)
-                                {
-                                    layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID);
-                                }
-                            }
-                            if (b.daysOfConstructionLeft.Value > 0)
-                            {
-                                b.tilesWide.Value = 11;
-                            }
-                        }
-                    }
-                }
+                    AddArch(building);
+                }                
             }
             foreach (Building building in e.Removed)
             {
-                if (building.buildingType.Value == "Winery")
+                if (building.indoors.Value != null && building.buildingType.Value == "Winery")
                 {
-                    tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
-                    tileID = 131;
-                    for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
-                    {
-                        for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
-                        {
-                            Game1.getFarm().removeTile(x, y, "Buildings");
-                        }
-                    }
+                    RemoveArch(building);
                 }
             }
-
         }
         /*
          * END EDIT WINERY WIDTH
@@ -328,7 +332,7 @@ namespace SauvignonInStardew
          */
         public void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
         {
-            SetItemCategory(-77);
+            //SetItemCategory(-77);
 
             wineryCoords = this.Helper.ReadJsonFile<List<KeyValuePair<int, int>>>($"{Constants.CurrentSavePath}/Winery_Coords.json") ?? new List<KeyValuePair<int, int>>();
             foreach (Building b in Game1.getFarm().buildings)
@@ -337,24 +341,10 @@ namespace SauvignonInStardew
                 {
                     if (b.tileX.Value == pair.Key && b.tileY.Value == pair.Value && b.buildingType.Value == "Slime Hutch")
                     {
-                        b.tilesWide.Value = 8;
                         b.buildingType.Value = "Winery";
                         b.indoors.Value.mapPath.Value = "Maps\\Winery";
                         b.indoors.Value.updateMap();
-                        layer = Game1.getFarm().map.GetLayer("Buildings");
-                        tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
-                        tileID = 131;
-                        for (int x = b.tileX.Value + 9; x < b.tileX.Value + 11; x++)
-                        {
-                            for (int y = b.tileY.Value; y < b.tileY.Value + 6; y++)
-                            {
-                                layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID);
-                            }
-                        }
-                        if (b.daysOfConstructionLeft.Value > 0)
-                        {
-                            b.tilesWide.Value = 11;
-                        }
+                        AddArch(b);
                     }
                 }
             }
@@ -387,7 +377,7 @@ namespace SauvignonInStardew
                 }
             }
 
-            SetItemCategory(-26);
+            //SetItemCategory(-26);
 
             wineryCoords.Clear();
             foreach (Building b in Game1.getFarm().buildings)
@@ -395,17 +385,10 @@ namespace SauvignonInStardew
                 if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
                 {
                     wineryCoords.Add(new KeyValuePair<int, int>(b.tileX.Value, b.tileY.Value));
-                    b.tilesWide.Value = 11;
                     b.buildingType.Value = "Slime Hutch";
                     b.indoors.Value.mapPath.Value = "Maps\\SlimeHutch";
                     b.indoors.Value.updateMap();
-                    for (int x = b.tileX.Value + 9; x < b.tileX.Value + 11; x++)
-                    {
-                        for (int y = b.tileY.Value; y < b.tileY.Value + 6; y++)
-                        {
-                            Game1.getFarm().removeTile(x, y, "Buildings");
-                        }
-                    }
+                    RemoveArch(b);
                 }
             }
             this.Helper.WriteJsonFile($"{Constants.CurrentSavePath}/Winery_Coords.json", wineryCoords);
@@ -448,17 +431,17 @@ namespace SauvignonInStardew
          */
         public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
-            Game1.activeClickableMenu = new LevelUpMenu(0, 10);
+            //Game1.activeClickableMenu = new LevelUpMenu(0, 10);
 
             //set seasonal building and reload texture
-            if(CurrentSeason != Game1.currentSeason)
+            if (CurrentSeason != Game1.currentSeason)
             {
                 //monitor.Log($"Current season is " + CurrentSeason);
                 CurrentSeason = Game1.currentSeason;
                 //monitor.Log($"Current season is now " + CurrentSeason);
                 Winery_outdoors = helper.Content.Load<Texture2D>($"assets/Winery_outside_{Game1.currentSeason}.png", ContentSource.ModFolder);
                 helper.Content.InvalidateCache("Buildings/Winery");
-            }            
+            }
 
             //reduce time for casks
             foreach (Building b in Game1.getFarm().buildings)
@@ -479,10 +462,18 @@ namespace SauvignonInStardew
 
         /*
         * SET ITEM CATEGORY
-        * 
-        */ 
+        * and item sell price for Distiller Profession
+        */
         public void SetItemCategory(int catID)
         {
+            if (Game1.player.professions.Contains(77))
+            {
+                isDistiller = true;
+            }
+            else
+            {
+                isDistiller = false;
+            }
             //check for old wine in player inventory
             foreach (Item item in Game1.player.Items)
             {
@@ -567,7 +558,7 @@ namespace SauvignonInStardew
         /*
          * END SET ITEM CATEGORY
          * 
-         */ 
+         */
 
 
 
@@ -712,10 +703,6 @@ namespace SauvignonInStardew
             {
                 return true;
             }
-            else if (asset.AssetNameEquals("Strings/UI"))
-            {
-                return true;
-            }
             return false;
         }
 
@@ -730,12 +717,6 @@ namespace SauvignonInStardew
                 objectInfo[348] = objectInfo[348].Replace("-26", "-77");
                 objectInfo[459] = objectInfo[459].Replace("-26", "-77");
             }
-            if (asset.AssetNameEquals("Strings/UI"))
-            {
-                IDictionary<string, string> stringInfo = asset.AsDictionary<string, string>().Data;
-
-                stringInfo["LevelUp_ProfessionDescription_Artisan"] = "Artisan goods (cheese, truffle oil, cloth, etc.) worth 40% more.";
-            }
         }
         /*
          * END ASSET EDITOR
@@ -746,7 +727,7 @@ namespace SauvignonInStardew
         /*
          * PATCH METHOD FOR HARMONY
          * Has instance of Cask and reference result manipulation. Always returns false to suppress original method.
-         */   
+         */
         public static bool Patch_performObjectDropInAction(Cask __instance, ref bool __result, Item dropIn, bool probe, Farmer who)
         {
             if (dropIn != null && dropIn is SObject && (dropIn as SObject).bigCraftable.Value || __instance.heldObject.Value != null)
@@ -856,173 +837,181 @@ namespace SauvignonInStardew
 
         public static bool Patch_getCategoryColor(SObject __instance, ref Color __result)
         {
-            if (__instance is Furniture)
+            if (__instance != null)
             {
-                __result = new Color(100, 25, 190);
-                return false;
-            }
+                if (__instance is Furniture)
+                {
+                    __result = new Color(100, 25, 190);
+                    return false;
+                }
 
-            if (__instance.Type == null && __instance.Type.Equals((object)"Arch"))
-            {
-                __result = new Color(110, 0, 90);
-                return false;
-            }
-
-            switch (__instance.Category)
-            {
-                case -81:
-                    __result = new Color(10, 130, 50);
-                    return false;
-                case -80:
-                    __result = new Color(219, 54, 211);
-                    return false;
-                case -79:
-                    __result = Color.DeepPink;
-                    return false;
-                case -75:
-                    __result = Color.Green;
-                    return false;
-                case -74:
-                    __result = Color.Brown;
-                    return false;
-                case -28:
-                    __result = new Color(50, 10, 70);
-                    return false;
-                case -27:
-                case -26:
-                    __result = new Color(0, 155, 111);
-                    return false;
-                case -24:
-                    __result = Color.Plum;
-                    return false;
-                case -22:
-                    __result = Color.DarkCyan;
-                    return false;
-                case -21:
-                    __result = Color.DarkRed;
-                    return false;
-                case -20:
-                    __result = Color.DarkGray;
-                    return false;
-                case -19:
-                    __result = Color.SlateGray;
-                    return false;
-                case -18:
-                case -14:
-                case -6:
-                case -5:
-                    __result = new Color((int)byte.MaxValue, 0, 100);
-                    return false;
-                case -16:
-                case -15:
-                    __result = new Color(64, 102, 114);
-                    return false;
-                case -12:
-                case -2:
+                if (__instance.Type == null && __instance.Type.Equals((object)"Arch"))
+                {
                     __result = new Color(110, 0, 90);
                     return false;
-                case -8:
-                    __result = new Color(148, 61, 40);
-                    return false;
-                case -7:
-                    __result = new Color(220, 60, 0);
-                    return false;
-                case -4:
-                    __result = Color.DarkBlue;
-                    return false;
-                case -77:
-                    __result = new Color(255, 153, 0);
-                    return false;
-                default:
-                    __result = Color.Black;
-                    return false;
+                }
+
+                switch (__instance.Category)
+                {
+                    case -81:
+                        __result = new Color(10, 130, 50);
+                        return false;
+                    case -80:
+                        __result = new Color(219, 54, 211);
+                        return false;
+                    case -79:
+                        __result = Color.DeepPink;
+                        return false;
+                    case -75:
+                        __result = Color.Green;
+                        return false;
+                    case -74:
+                        __result = Color.Brown;
+                        return false;
+                    case -28:
+                        __result = new Color(50, 10, 70);
+                        return false;
+                    case -27:
+                    case -26:
+                        __result = new Color(0, 155, 111);
+                        return false;
+                    case -24:
+                        __result = Color.Plum;
+                        return false;
+                    case -22:
+                        __result = Color.DarkCyan;
+                        return false;
+                    case -21:
+                        __result = Color.DarkRed;
+                        return false;
+                    case -20:
+                        __result = Color.DarkGray;
+                        return false;
+                    case -19:
+                        __result = Color.SlateGray;
+                        return false;
+                    case -18:
+                    case -14:
+                    case -6:
+                    case -5:
+                        __result = new Color((int)byte.MaxValue, 0, 100);
+                        return false;
+                    case -16:
+                    case -15:
+                        __result = new Color(64, 102, 114);
+                        return false;
+                    case -12:
+                    case -2:
+                        __result = new Color(110, 0, 90);
+                        return false;
+                    case -8:
+                        __result = new Color(148, 61, 40);
+                        return false;
+                    case -7:
+                        __result = new Color(220, 60, 0);
+                        return false;
+                    case -4:
+                        __result = Color.DarkBlue;
+                        return false;
+                    case -77:
+                        __result = new Color(255, 153, 0);
+                        return false;
+                    default:
+                        __result = Color.Black;
+                        return false;
+                }
             }
+            return false;
         }
 
         public static bool Patch_getCategoryName(SObject __instance, ref string __result)
         {
-            if (__instance is Furniture)
+            if (__instance != null)
             {
-                __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12847");
-                return false;
-            }
+                if (__instance is Furniture)
+                {
+                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12847");
+                    return false;
+                }
 
-            if (__instance.Type != null && __instance.Type.Equals("Arch"))
-            {
-                __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12849");
-                return false;
-            }
+                if (__instance.Type != null && __instance.Type.Equals("Arch"))
+                {
+                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12849");
+                    return false;
+                }
 
-            switch (__instance.Category)
-            {
-                case -81:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12869");
-                    return false;
-                case -80:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12866");
-                    return false;
-                case -79:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12854");
-                    return false;
-                case -75:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12851");
-                    return false;
-                case -74:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12855");
-                    return false;
-                case -28:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12867");
-                    return false;
-                case -27:
-                case -26:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12862");
-                    return false;
-                case -25:
-                case -7:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12853");
-                    return false;
-                case -24:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12859");
-                    return false;
-                case -22:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12858");
-                    return false;
-                case -21:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12857");
-                    return false;
-                case -20:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12860");
-                    return false;
-                case -19:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12856");
-                    return false;
-                case -18:
-                case -14:
-                case -6:
-                case -5:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12864");
-                    return false;
-                case -16:
-                case -15:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12868");
-                    return false;
-                case -12:
-                case -2:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12850");
-                    return false;
-                case -8:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12863");
-                    return false;
-                case -4:
-                    __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12852");
-                    return false;
-                case -77:
-                    __result = "Distilled Craft";
-                    return false;
-                default:
-                    __result = "";
-                    return false;
+                switch (__instance.Category)
+                {
+                    case -81:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12869");
+                        return false;
+                    case -80:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12866");
+                        return false;
+                    case -79:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12854");
+                        return false;
+                    case -75:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12851");
+                        return false;
+                    case -74:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12855");
+                        return false;
+                    case -28:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12867");
+                        return false;
+                    case -27:
+                    case -26:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12862");
+                        return false;
+                    case -25:
+                    case -7:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12853");
+                        return false;
+                    case -24:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12859");
+                        return false;
+                    case -22:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12858");
+                        return false;
+                    case -21:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12857");
+                        return false;
+                    case -20:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12860");
+                        return false;
+                    case -19:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12856");
+                        return false;
+                    case -18:
+                    case -14:
+                    case -6:
+                    case -5:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12864");
+                        return false;
+                    case -16:
+                    case -15:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12868");
+                        return false;
+                    case -12:
+                    case -2:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12850");
+                        return false;
+                    case -8:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12863");
+                        return false;
+                    case -4:
+                        __result = Game1.content.LoadString("Strings\\StringsFromCSFiles:Object.cs.12852");
+                        return false;
+                    case -77:
+                        __result = "Distilled Craft";
+                        return false;
+                    default:
+                        __result = "";
+                        return false;
+                }
             }
+            return false;
         }
         /*
         * END OF PATCH METHOD FOR HARMONY
