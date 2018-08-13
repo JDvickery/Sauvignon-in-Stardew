@@ -13,7 +13,9 @@ namespace Sauvignon_in_Stardew
 {
     class DistillerMenu : LevelUpMenu
     {
-
+        private Color firstProfessionColor;
+        private Color secondProfessionColor;
+        private Color thirdProfessionColor;
         private Color textColor = Game1.textColor;
 
         private readonly List<string> firstProfessionDescription = new List<string>() { "Artisan", "Artisan goods (cheese, truffle oil, cloth, etc.) worth 40% more." };
@@ -42,6 +44,8 @@ namespace Sauvignon_in_Stardew
 
         private readonly List<TemporaryAnimatedSprite> littleStars = new List<TemporaryAnimatedSprite>();
 
+        private int timerBeforeStart;
+
 
         public DistillerMenu()
         {
@@ -50,14 +54,15 @@ namespace Sauvignon_in_Stardew
 
         public DistillerMenu(int skill, int level)
         {
+            this.timerBeforeStart = 250;
             this.isActive = true;
             this.height = 512;
             this.width = 1344;
 
             Game1.player.completelyStopAnimatingOrDoingAction();
-
+            ModEntry.monitor.Log("Viewport height is " + Game1.viewport.Height);
             this.xPositionOnScreen = 100;
-            this.yPositionOnScreen = Game1.viewport.Height / 3;
+            this.yPositionOnScreen =  (int)(Game1.viewport.Height * (1.0 / Game1.options.zoomLevel)) / 3;
 
             this.firstProfession = new ClickableComponent(new Rectangle(this.xPositionOnScreen, this.yPositionOnScreen + 128, this.width / 3, this.height), "")
             {
@@ -81,15 +86,11 @@ namespace Sauvignon_in_Stardew
             //this.populateClickableComponentList();
             this.allClickableComponents = new List<ClickableComponent> { this.firstProfession, this.secondProfession, this.thirdProfession };
             this.snapToDefaultClickableComponent();
-
-            foreach (ClickableComponent c in this.allClickableComponents)
-            {
-                ModEntry.monitor.Log($"Clickable Component ID is " + c.myID);
-            }
         }
 
         public override void update(GameTime time)
         {
+            //stars
             for (int index = this.littleStars.Count - 1; index >= 0; --index)
             {
                 if (this.littleStars[index].update(time))
@@ -106,6 +107,62 @@ namespace Sauvignon_in_Stardew
                 {
                     local = true
                 });
+            }
+            //end stars
+            if (this.timerBeforeStart > 0)
+            {
+                this.timerBeforeStart -= time.ElapsedGameTime.Milliseconds;
+            }
+            else
+            {
+                this.firstProfessionColor = Game1.textColor;
+                this.secondProfessionColor = Game1.textColor;
+                this.thirdProfessionColor = Game1.textColor;
+                //Game1.player.completelyStopAnimatingOrDoingAction();
+                //Game1.player.freezePause = 100;
+                ModEntry.monitor.Log("Mouse Y is " + Game1.getMouseY());
+                ModEntry.monitor.Log("Y + 192 is " + this.yPositionOnScreen + 192);
+                ModEntry.monitor.Log("Y + Height is " +this.yPositionOnScreen + this.height);
+                if (Game1.getMouseY() > this.yPositionOnScreen + 192 && Game1.getMouseY() < this.yPositionOnScreen + this.height)
+                {
+                    if (Game1.getMouseX() > this.xPositionOnScreen && Game1.getMouseX() < this.xPositionOnScreen + this.width / 2)
+                    {
+                        this.firstProfessionColor = Color.Green;
+                        //if ((Game1.input.GetMouseState().LeftButton == ButtonState.Pressed && this.oldMouseState.LeftButton == ButtonState.Released || Game1.options.gamepadControls && (Game1.input.GetGamePadState().IsButtonDown(Buttons.A) && !Game1.oldPadState.IsButtonDown(Buttons.A))) && this.readyToClose())
+                        if ( (ModEntry.helper.Input.IsDown(SButton.MouseLeft)) || (Game1.options.gamepadControls && ModEntry.helper.Input.IsDown(SButton.A)) )
+                        {                            
+                            Game1.player.professions.Add(this.professionsToChoose[0]);
+                            this.getImmediateProfessionPerk(this.professionsToChoose[0]);
+                            this.isActive = false;
+                            this.informationUp = false;
+                            this.isProfessionChooser = false;
+                        }
+                    }
+                    else if (Game1.getMouseX() > this.xPositionOnScreen + this.width / 3 && Game1.getMouseX() < this.xPositionOnScreen + this.width)
+                    {
+                        this.secondProfessionColor = Color.Green;
+                        if((ModEntry.helper.Input.IsDown(SButton.MouseLeft)) || (Game1.options.gamepadControls && ModEntry.helper.Input.IsDown(SButton.A)))
+                        {
+                            Game1.player.professions.Add(this.professionsToChoose[1]);
+                            this.getImmediateProfessionPerk(this.professionsToChoose[1]);
+                            this.isActive = false;
+                            this.informationUp = false;
+                            this.isProfessionChooser = false;
+                        }
+                    }
+                    else if (Game1.getMouseX() > this.xPositionOnScreen + this.width / 3 + this.width / 3 && Game1.getMouseX() < this.xPositionOnScreen + this.width)
+                    {
+                        this.thirdProfessionColor = Color.Green;
+                        if((ModEntry.helper.Input.IsDown(SButton.MouseLeft)) || (Game1.options.gamepadControls && ModEntry.helper.Input.IsDown(SButton.A)))
+                        {
+                            Game1.player.professions.Add(this.professionsToChoose[2]);
+                            this.getImmediateProfessionPerk(this.professionsToChoose[2]);
+                            this.isActive = false;
+                            this.informationUp = false;
+                            this.isProfessionChooser = false;
+                        }
+                    }
+                }
             }
         }
 

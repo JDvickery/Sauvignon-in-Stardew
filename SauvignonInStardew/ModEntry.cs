@@ -36,11 +36,11 @@ namespace Sauvignon_in_Stardew
         public Texture2D Winery_outdoors;
         public Map Winery_indoors;
 
-        public List<KeyValuePair<int, int>> wineryCoords;
-
+        public TileSheet tileSheet;
         public Layer layer;
-        public TileSheet tilesheet;
-        public int tileID;
+        public const int tileID = 131;
+
+        public List<KeyValuePair<int, int>> wineryCoords;
 
         public readonly Dictionary<string, string> dataForBlueprint = new Dictionary<string, string>() { ["Winery"] = "709 200 330 100 390 100/11/6/5/5/-1/-1/Winery/Winery/Kegs and Casks inside work 30% faster and display time remaining./Buildings/none/96/96/20/null/Farm/20000/false" };
 
@@ -52,6 +52,7 @@ namespace Sauvignon_in_Stardew
         public int bedTime;
         public int hoursSlept;
         public bool isDistiller;
+        public bool isArtisan;
         /*
          * END FIELDS
          * 
@@ -83,7 +84,7 @@ namespace Sauvignon_in_Stardew
 
             //Event for showing time remaining on hover
             GraphicsEvents.OnPostRenderEvent += GraphicsEvents_OnPostRenderEvent;
-            GraphicsEvents.OnPreRenderEvent += GraphicsEvents_OnPreRenderEvent;
+            //GraphicsEvents.OnPreRenderEvent += GraphicsEvents_OnPreRenderEvent;
 
             //Events for editing Winery width
             LocationEvents.BuildingsChanged += LocationEvents_BuildingsChanged;
@@ -161,12 +162,12 @@ namespace Sauvignon_in_Stardew
         public void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e)
         {
             //monitor.Log($"Current menu type is " + e.NewMenu.GetType().ToString());
-            /*
+            
             if (!(Game1.activeClickableMenu is DistillerMenu) && Game1.activeClickableMenu is LevelUpMenu lvlMenu && lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
             {
                 Game1.activeClickableMenu = new DistillerMenu(0, 10);
             }
-            */
+            
 
             if (e.NewMenu is DialogueBox box && box.getCurrentString().Contains("sleep for the night"))
             {
@@ -190,13 +191,13 @@ namespace Sauvignon_in_Stardew
                         name = "Winery",
                         displayName = "Winery",
                         description = "Kegs and Casks inside work 30% faster and display time remaining.",
-                        daysToConstruct = 4,//4
-                        moneyRequired = 40000 //40000
+                        daysToConstruct = 0,//4
+                        moneyRequired = 0 //40000
                     };
                     wineryBluePrint.itemsRequired.Clear();
-                    wineryBluePrint.itemsRequired.Add(709, 200);//200
-                    wineryBluePrint.itemsRequired.Add(330, 100);//100
-                    wineryBluePrint.itemsRequired.Add(390, 100);//100
+                    wineryBluePrint.itemsRequired.Add(709, 0);//200
+                    wineryBluePrint.itemsRequired.Add(330, 0);//100
+                    wineryBluePrint.itemsRequired.Add(390, 0);//100
 
                     SetBluePrintField(wineryBluePrint, "textureName", "Buildings\\Winery");
                     SetBluePrintField(wineryBluePrint, "texture", Game1.content.Load<Texture2D>(wineryBluePrint.textureName));
@@ -264,13 +265,20 @@ namespace Sauvignon_in_Stardew
         {
             building.tilesWide.Value = 8;
             layer = Game1.getFarm().map.GetLayer("Buildings");
-            tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
-            tileID = 131;
+            foreach(TileSheet sheet in Game1.getFarm().map.TileSheets)
+            {
+                if (sheet.ImageSource != null && ( sheet.ImageSource.Contains("outdoor") || sheet.ImageSource.Contains("Outdoor")))
+                {
+                    tileSheet = sheet;
+                }
+            }            
+            //tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
+            //tileID = 131;
             for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
             {
                 for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
                 {
-                    layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID);
+                    layer.Tiles[x, y] = new StaticTile(layer, tileSheet, BlendMode.Alpha, tileID);
                 }
             }
             if (building.daysOfConstructionLeft.Value > 0)
@@ -339,12 +347,12 @@ namespace Sauvignon_in_Stardew
             {
                 foreach (var pair in wineryCoords)
                 {
-                    if (b.tileX.Value == pair.Key && b.tileY.Value == pair.Value && b.buildingType.Value == "Slime Hutch")
+                    if (b.tileX.Value == pair.Key && b.tileY.Value == pair.Value && b.buildingType.Value.Equals("Slime Hutch"))
                     {
                         b.buildingType.Value = "Winery";
-                        b.indoors.Value.mapPath.Value = "Maps\\Winery";
+                        b.indoors.Value.mapPath.Value = "Maps\\Winery";                        
                         b.indoors.Value.updateMap();
-                        AddArch(b);
+                        AddArch(b);                        
                     }
                 }
             }
@@ -386,7 +394,7 @@ namespace Sauvignon_in_Stardew
                 {
                     wineryCoords.Add(new KeyValuePair<int, int>(b.tileX.Value, b.tileY.Value));
                     b.buildingType.Value = "Slime Hutch";
-                    b.indoors.Value.mapPath.Value = "Maps\\SlimeHutch";
+                    b.indoors.Value.mapPath.Value = "Maps\\SlimeHutch";                    
                     b.indoors.Value.updateMap();
                     RemoveArch(b);
                 }
@@ -431,7 +439,7 @@ namespace Sauvignon_in_Stardew
          */
         public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
-            //Game1.activeClickableMenu = new LevelUpMenu(0, 10);
+            Game1.activeClickableMenu = new LevelUpMenu(0, 10);
 
             //set seasonal building and reload texture
             if (CurrentSeason != Game1.currentSeason)
@@ -466,14 +474,23 @@ namespace Sauvignon_in_Stardew
         */
         public void SetItemCategory(int catID)
         {
+
             if (Game1.player.professions.Contains(77))
             {
                 isDistiller = true;
+                isArtisan = false;
+            }
+            else if (Game1.player.professions.Contains(4))
+            {
+                isDistiller = false;
+                isArtisan = true;
             }
             else
             {
                 isDistiller = false;
+                isArtisan = false;
             }
+
             //check for old wine in player inventory
             foreach (Item item in Game1.player.Items)
             {
@@ -574,17 +591,17 @@ namespace Sauvignon_in_Stardew
                 if (Game1.currentLocation.mapPath.Value == "Maps\\Winery" && Game1.currentLocation != null)
                 {
                     layer = Game1.currentLocation.map.GetLayer("Buildings");
-                    tilesheet = Game1.currentLocation.map.GetTileSheet("untitled tile sheet");
-                    tileID = 1367;
+                    TileSheet tilesheet = Game1.currentLocation.map.GetTileSheet("untitled tile sheet");
+                    int tileID_var = 1367;
                     for (int y = 6; y < 10; y++)
                     {
                         Game1.currentLocation.removeTile(16, y, "Buildings");
-                        layer.Tiles[16, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID);
+                        layer.Tiles[16, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID_var);
                     }
                 }
             }
         }
-        /*
+         /*
          * END ISSUE FIX
          * 
          */
