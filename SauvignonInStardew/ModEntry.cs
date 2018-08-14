@@ -115,7 +115,7 @@ namespace Sauvignon_in_Stardew
             MethodInfo method = type.GetMethod("performObjectDropInAction");
             HarmonyMethod patchMethod = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_performObjectDropInAction)));
             harmony.Patch(method, patchMethod, null);
-            /*
+            
             Type type2 = typeof(SObject);
             MethodInfo method2 = type2.GetMethod("getCategoryColor");
             HarmonyMethod patchMethod2 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryColor)));
@@ -124,7 +124,7 @@ namespace Sauvignon_in_Stardew
             MethodInfo method3 = type2.GetMethod("getCategoryName");
             HarmonyMethod patchMethod3 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryName)));
             harmony.Patch(method3, patchMethod3, null);
-            *
+            /*
              * END OF HARMONY PATCHING
              * 
              */
@@ -166,6 +166,7 @@ namespace Sauvignon_in_Stardew
             if (!(Game1.activeClickableMenu is DistillerMenu) && Game1.activeClickableMenu is LevelUpMenu lvlMenu && lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
             {
                 Game1.activeClickableMenu = new DistillerMenu(0, 10);
+                monitor.Log($"Player professions are "+Game1.player.professions.ToString());
             }
             
 
@@ -340,7 +341,7 @@ namespace Sauvignon_in_Stardew
          */
         public void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
         {
-            //SetItemCategory(-77);
+            SetItemCategory(-77);
 
             wineryCoords = this.Helper.ReadJsonFile<List<KeyValuePair<int, int>>>($"{Constants.CurrentSavePath}/Winery_Coords.json") ?? new List<KeyValuePair<int, int>>();
             foreach (Building b in Game1.getFarm().buildings)
@@ -360,6 +361,7 @@ namespace Sauvignon_in_Stardew
 
         public void SaveEvents_BeforeSave(object sender, EventArgs e)
         {
+            SetItemCategory(-26);
             //monitor.Log($"Time is" + Game1.timeOfDay);
 
             //calculate time slept            
@@ -439,6 +441,7 @@ namespace Sauvignon_in_Stardew
          */
         public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
+            SetItemCategory(-77);
             Game1.activeClickableMenu = new LevelUpMenu(0, 10);
 
             //set seasonal building and reload texture

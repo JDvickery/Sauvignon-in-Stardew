@@ -60,9 +60,8 @@ namespace Sauvignon_in_Stardew
             this.width = 1344;
 
             Game1.player.completelyStopAnimatingOrDoingAction();
-            ModEntry.monitor.Log("Viewport height is " + Game1.viewport.Height);
             this.xPositionOnScreen = 100;
-            this.yPositionOnScreen =  (int)(Game1.viewport.Height * (1.0 / Game1.options.zoomLevel)) / 3;
+            this.yPositionOnScreen =  (int)(Game1.viewport.Height * (1.0 / Game1.options.zoomLevel)) / 4;
 
             this.firstProfession = new ClickableComponent(new Rectangle(this.xPositionOnScreen, this.yPositionOnScreen + 128, this.width / 3, this.height), "")
             {
@@ -90,6 +89,11 @@ namespace Sauvignon_in_Stardew
 
         public override void update(GameTime time)
         {
+            if (!this.isActive)
+            {
+                this.exitThisMenu(true);
+            }
+            //ModEntry.monitor.Log($"Update 1 yPosition is " + this.yPositionOnScreen);
             //stars
             for (int index = this.littleStars.Count - 1; index >= 0; --index)
             {
@@ -109,57 +113,64 @@ namespace Sauvignon_in_Stardew
                 });
             }
             //end stars
+
             if (this.timerBeforeStart > 0)
             {
                 this.timerBeforeStart -= time.ElapsedGameTime.Milliseconds;
             }
             else
             {
+                //ModEntry.monitor.Log($"Update 2 yPosition is " + this.yPositionOnScreen);
                 this.firstProfessionColor = Game1.textColor;
                 this.secondProfessionColor = Game1.textColor;
                 this.thirdProfessionColor = Game1.textColor;
-                //Game1.player.completelyStopAnimatingOrDoingAction();
-                //Game1.player.freezePause = 100;
-                ModEntry.monitor.Log("Mouse Y is " + Game1.getMouseY());
-                ModEntry.monitor.Log("Y + 192 is " + this.yPositionOnScreen + 192);
-                ModEntry.monitor.Log("Y + Height is " +this.yPositionOnScreen + this.height);
                 if (Game1.getMouseY() > this.yPositionOnScreen + 192 && Game1.getMouseY() < this.yPositionOnScreen + this.height)
                 {
-                    if (Game1.getMouseX() > this.xPositionOnScreen && Game1.getMouseX() < this.xPositionOnScreen + this.width / 2)
+                    //ModEntry.monitor.Log($"Update 3 yPosition is " + this.yPositionOnScreen);
+                    if (Game1.getMouseX() > this.xPositionOnScreen && Game1.getMouseX() < this.xPositionOnScreen + this.width / 3)
                     {
                         this.firstProfessionColor = Color.Green;
                         //if ((Game1.input.GetMouseState().LeftButton == ButtonState.Pressed && this.oldMouseState.LeftButton == ButtonState.Released || Game1.options.gamepadControls && (Game1.input.GetGamePadState().IsButtonDown(Buttons.A) && !Game1.oldPadState.IsButtonDown(Buttons.A))) && this.readyToClose())
                         if ( (ModEntry.helper.Input.IsDown(SButton.MouseLeft)) || (Game1.options.gamepadControls && ModEntry.helper.Input.IsDown(SButton.A)) )
-                        {                            
-                            Game1.player.professions.Add(this.professionsToChoose[0]);
-                            this.getImmediateProfessionPerk(this.professionsToChoose[0]);
-                            this.isActive = false;
-                            this.informationUp = false;
-                            this.isProfessionChooser = false;
+                        {
+                            if (!Game1.player.professions.Contains(4))
+                            {
+                                Game1.player.professions.Add(this.professionsToChoose[0]);
+                                this.getImmediateProfessionPerk(this.professionsToChoose[0]);
+                                this.isActive = false;
+                                this.informationUp = false;
+                                this.isProfessionChooser = false;
+                            }
                         }
                     }
-                    else if (Game1.getMouseX() > this.xPositionOnScreen + this.width / 3 && Game1.getMouseX() < this.xPositionOnScreen + this.width)
+                    else if (Game1.getMouseX() > this.xPositionOnScreen + this.width / 3 && Game1.getMouseX() < this.xPositionOnScreen + this.width / 3 + this.width / 3)
                     {
                         this.secondProfessionColor = Color.Green;
                         if((ModEntry.helper.Input.IsDown(SButton.MouseLeft)) || (Game1.options.gamepadControls && ModEntry.helper.Input.IsDown(SButton.A)))
                         {
-                            Game1.player.professions.Add(this.professionsToChoose[1]);
-                            this.getImmediateProfessionPerk(this.professionsToChoose[1]);
-                            this.isActive = false;
-                            this.informationUp = false;
-                            this.isProfessionChooser = false;
+                            if (!Game1.player.professions.Contains(5))
+                            {
+                                Game1.player.professions.Add(this.professionsToChoose[1]);
+                                this.getImmediateProfessionPerk(this.professionsToChoose[1]);
+                                this.isActive = false;
+                                this.informationUp = false;
+                                this.isProfessionChooser = false;
+                            }
                         }
                     }
-                    else if (Game1.getMouseX() > this.xPositionOnScreen + this.width / 3 + this.width / 3 && Game1.getMouseX() < this.xPositionOnScreen + this.width)
+                    else if (Game1.getMouseX() > this.xPositionOnScreen + this.width / 3 + this.width / 3 && Game1.getMouseX() < this.xPositionOnScreen + this.width / 3 + this.width / 3 + this.width / 3)
                     {
                         this.thirdProfessionColor = Color.Green;
                         if((ModEntry.helper.Input.IsDown(SButton.MouseLeft)) || (Game1.options.gamepadControls && ModEntry.helper.Input.IsDown(SButton.A)))
                         {
-                            Game1.player.professions.Add(this.professionsToChoose[2]);
-                            this.getImmediateProfessionPerk(this.professionsToChoose[2]);
-                            this.isActive = false;
-                            this.informationUp = false;
-                            this.isProfessionChooser = false;
+                            if (!Game1.player.professions.Contains(77))
+                            {
+                                Game1.player.professions.Add(this.professionsToChoose[2]);
+                                this.getImmediateProfessionPerk(this.professionsToChoose[2]);
+                                this.isActive = false;
+                                this.informationUp = false;
+                                this.isProfessionChooser = false;
+                            }
                         }
                     }
                 }
@@ -190,34 +201,43 @@ namespace Sauvignon_in_Stardew
 
             b.DrawString(Game1.smallFont, text, new Vector2((float)(this.xPositionOnScreen + this.width / 2) - Game1.smallFont.MeasureString(text).X / 2f, (float)(this.yPositionOnScreen + 64 + IClickableMenu.spaceToClearTopBorder)), Game1.textColor);
 
-            //first profession            
-            b.DrawString(Game1.dialogueFont, this.firstProfessionDescription[0], new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + 32), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160)), this.textColor);
+            //first profession   
+                //title
+            b.DrawString(Game1.dialogueFont, this.firstProfessionDescription[0], new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + 32), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160)), this.firstProfessionColor);
 
+                //icon
             b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3 - 112), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(this.professionsToChoose[0] % 6 * 16, 624 + this.professionsToChoose[0] / 6 * 16, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
 
+                //description
             for (int index = 1; index < this.firstProfessionDescription.Count; ++index)
             {
-                b.DrawString(Game1.smallFont, Game1.parseText(this.firstProfessionDescription[index], Game1.smallFont, this.width / 3 - 64), new Vector2((float)(this.xPositionOnScreen - 4 + IClickableMenu.spaceToClearSideBorder + 32), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 128 + 8 + 64 * (index + 1))), this.textColor);
+                b.DrawString(Game1.smallFont, Game1.parseText(this.firstProfessionDescription[index], Game1.smallFont, this.width / 3 - 64), new Vector2((float)(this.xPositionOnScreen - 4 + IClickableMenu.spaceToClearSideBorder + 32), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 128 + 8 + 64 * (index + 1))), this.firstProfessionColor);
             }
 
-            //second profession            
-            b.DrawString(Game1.dialogueFont, this.secondProfessionDescription[0], new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160)), this.textColor);
+            //second profession     
+                //title
+            b.DrawString(Game1.dialogueFont, this.secondProfessionDescription[0], new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160)), this.secondProfessionColor);
 
-            b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width - 128), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(this.professionsToChoose[1] % 6 * 16, 624 + this.professionsToChoose[1] / 6 * 16, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+                //icon
+            b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3 - 128), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(this.professionsToChoose[1] % 6 * 16, 624 + this.professionsToChoose[1] / 6 * 16, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
 
+                //description
             for (int index = 1; index < this.secondProfessionDescription.Count; ++index)
             {
-                b.DrawString(Game1.smallFont, Game1.parseText(this.secondProfessionDescription[index], Game1.smallFont, this.width / 3 - 48), new Vector2((float)(this.xPositionOnScreen - 4 + IClickableMenu.spaceToClearSideBorder + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 128 + 8 + 64 * (index + 1))), this.textColor);
+                b.DrawString(Game1.smallFont, Game1.parseText(this.secondProfessionDescription[index], Game1.smallFont, this.width / 3 - 48), new Vector2((float)(this.xPositionOnScreen - 4 + IClickableMenu.spaceToClearSideBorder + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 128 + 8 + 64 * (index + 1))), this.secondProfessionColor);
             }
 
             //third profession
-            b.DrawString(Game1.dialogueFont, this.thirdProfessionDescription[0], new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3 + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160)), this.textColor);
+                //title
+            b.DrawString(Game1.dialogueFont, this.thirdProfessionDescription[0], new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3 + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160)), this.thirdProfessionColor);
 
-            b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width - 128), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(this.professionsToChoose[2] % 6 * 16, 624 + this.professionsToChoose[2] / 6 * 16, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
-
+                //icon
+            b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3 - 128), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(this.professionsToChoose[2] % 6 * 16, 624 + this.professionsToChoose[2] / 6 * 16, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+                
+                //description
             for (int index = 1; index < this.thirdProfessionDescription.Count; ++index)
             {
-                b.DrawString(Game1.smallFont, Game1.parseText(this.thirdProfessionDescription[index], Game1.smallFont, (this.width / 3 - 48)), new Vector2((float)(this.xPositionOnScreen - 4 + IClickableMenu.spaceToClearSideBorder + this.width / 3 + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 128 + 8 + 64 * (index + 1))), this.textColor);
+                b.DrawString(Game1.smallFont, Game1.parseText(this.thirdProfessionDescription[index], Game1.smallFont, (this.width / 3 - 48)), new Vector2((float)(this.xPositionOnScreen - 4 + IClickableMenu.spaceToClearSideBorder + this.width / 3 + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 128 + 8 + 64 * (index + 1))), this.thirdProfessionColor);
             }
 
             this.drawMouse(b);
