@@ -51,8 +51,13 @@ namespace Sauvignon_in_Stardew
 
         public int bedTime;
         public int hoursSlept;
+
         public bool isDistiller;
         public bool isArtisan;
+
+        public Texture2D distillerIcon;
+
+        public bool isSkillsBar;
         /*
          * END FIELDS
          * 
@@ -73,6 +78,9 @@ namespace Sauvignon_in_Stardew
             Winery_outdoors = helper.Content.Load<Texture2D>($"assets/Winery_outside_{Game1.currentSeason}.png", ContentSource.ModFolder);
             Winery_indoors = helper.Content.Load<Map>("assets/Winery.tbin", ContentSource.ModFolder);
 
+            //Loaded texture for Distiller Icon
+            distillerIcon = helper.Content.Load<Texture2D>("assets/Distiller_icon.png", ContentSource.ModFolder);
+
             //Event for adding blueprint to carpenter menu
             MenuEvents.MenuChanged += MenuEvents_MenuChanged;
 
@@ -91,6 +99,9 @@ namespace Sauvignon_in_Stardew
 
             //Event for proventing buidling overlays
             MenuEvents.MenuClosed += MenuEvents_MenuClosed;
+
+            //Event for fixing skills menu
+            GameEvents.UpdateTick += GameEvents_UpdateTick;
 
             /*
              * Events for save and loading
@@ -128,7 +139,7 @@ namespace Sauvignon_in_Stardew
              * END OF HARMONY PATCHING
              * 
              */
-        }
+        }       
         /*
         * END ENTRY
         * 
@@ -156,19 +167,56 @@ namespace Sauvignon_in_Stardew
 
 
         /*
+        * DRAW TO SKILLS PAGE 
+        * 
+        */ 
+        private void GameEvents_UpdateTick(object sender, EventArgs e)
+        {
+            if (Game1.activeClickableMenu is GameMenu menu && menu.currentTab == 1 && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(4))
+            {                
+                List<IClickableMenu> pages = helper.Reflection.GetField<List<IClickableMenu>>(menu, "pages").GetValue();
+                foreach (IClickableMenu page in pages)
+                {
+                    if (page is SkillsPage skillsPage)
+                    {
+                        foreach (ClickableTextureComponent skillBar in skillsPage.skillBars)
+                        {
+                            if (skillBar.containsPoint(Game1.getMouseX(), Game1.getMouseY()) && skillBar.myID == 200)
+                            {
+                                //local variables
+                                string textTitle = "Distiller";
+                                string textDescription = "Alcohol sells for 40% more.";
+                                int num3 = LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ru ? page.xPositionOnScreen + page.width - 448 - 48 : page.xPositionOnScreen + IClickableMenu.borderWidth + IClickableMenu.spaceToClearTopBorder + 256 - 8;
+                                int num4 = page.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + IClickableMenu.borderWidth - 8;
+
+                                //draw
+                                monitor.Log("Draw stuff here");
+                            }                            
+                        }
+                    }
+                }
+            }
+        }
+        /*
+        * END DRAW TO SKILLS PAGE 
+        * 
+        */
+
+
+
+        /*
          * ADD WINERY TO CARPENTER MENU
          * 
          */
         public void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e)
         {
-            //monitor.Log($"Current menu type is " + e.NewMenu.GetType().ToString());
-            
+            //monitor.Log($"Current menu type is " + e.NewMenu);            
+
             if (!(Game1.activeClickableMenu is DistillerMenu) && Game1.activeClickableMenu is LevelUpMenu lvlMenu && lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
             {
-                Game1.activeClickableMenu = new DistillerMenu(0, 10);
-                monitor.Log($"Player professions are "+Game1.player.professions.ToString());
-            }
-            
+                Game1.activeClickableMenu = new DistillerMenu(0, 10, distillerIcon);
+                //monitor.Log($"Player professions are "+Game1.player.professions.ToString());
+            }            
 
             if (e.NewMenu is DialogueBox box && box.getCurrentString().Contains("sleep for the night"))
             {
@@ -341,6 +389,12 @@ namespace Sauvignon_in_Stardew
          */
         public void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
         {
+            //Remove Artisan Profession if the have selected Distiller Profession
+            if (Game1.player.professions.Contains(77))
+            {
+                Game1.player.professions.Remove(4);
+            }            
+            monitor.Log("" + Game1.player.professions.ToString());
             SetItemCategory(-77);
 
             wineryCoords = this.Helper.ReadJsonFile<List<KeyValuePair<int, int>>>($"{Constants.CurrentSavePath}/Winery_Coords.json") ?? new List<KeyValuePair<int, int>>();
@@ -361,6 +415,9 @@ namespace Sauvignon_in_Stardew
 
         public void SaveEvents_BeforeSave(object sender, EventArgs e)
         {
+            //Add Artisan Profession
+            Game1.player.professions.Add(4);
+            monitor.Log("" + Game1.player.professions.ToString());
             SetItemCategory(-26);
             //monitor.Log($"Time is" + Game1.timeOfDay);
 
@@ -442,7 +499,7 @@ namespace Sauvignon_in_Stardew
         public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
             SetItemCategory(-77);
-            Game1.activeClickableMenu = new LevelUpMenu(0, 10);
+            //Game1.activeClickableMenu = new LevelUpMenu(0, 10);
 
             //set seasonal building and reload texture
             if (CurrentSeason != Game1.currentSeason)

@@ -46,14 +46,17 @@ namespace Sauvignon_in_Stardew
 
         private int timerBeforeStart;
 
+        public Texture2D icon;
+
 
         public DistillerMenu()
         {
 
         }
 
-        public DistillerMenu(int skill, int level)
+        public DistillerMenu(int skill, int level, Texture2D icon)
         {
+            this.icon = icon;
             this.timerBeforeStart = 250;
             this.isActive = true;
             this.height = 512;
@@ -219,7 +222,7 @@ namespace Sauvignon_in_Stardew
             b.DrawString(Game1.dialogueFont, this.secondProfessionDescription[0], new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160)), this.secondProfessionColor);
 
                 //icon
-            b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3 - 128), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(this.professionsToChoose[1] % 6 * 16, 624 + this.professionsToChoose[1] / 6 * 16, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+            b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + (this.width / 3) * 2 - 128), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(this.professionsToChoose[1] % 6 * 16, 624 + this.professionsToChoose[1] / 6 * 16, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
 
                 //description
             for (int index = 1; index < this.secondProfessionDescription.Count; ++index)
@@ -232,9 +235,9 @@ namespace Sauvignon_in_Stardew
             b.DrawString(Game1.dialogueFont, this.thirdProfessionDescription[0], new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3 + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160)), this.thirdProfessionColor);
 
                 //icon
-            b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + this.width / 3 - 128), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(this.professionsToChoose[2] % 6 * 16, 624 + this.professionsToChoose[2] / 6 * 16, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
-                
-                //description
+            b.Draw(this.icon, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + (this.width / 3) * 3 - 128), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 160 - 16)), new Rectangle?(new Rectangle(0, 0, 16, 16)), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);//this.professionsToChoose[2] % 6 * 16, 624 + this.professionsToChoose[2] / 6 * 16
+
+            //description
             for (int index = 1; index < this.thirdProfessionDescription.Count; ++index)
             {
                 b.DrawString(Game1.smallFont, Game1.parseText(this.thirdProfessionDescription[index], Game1.smallFont, (this.width / 3 - 48)), new Vector2((float)(this.xPositionOnScreen - 4 + IClickableMenu.spaceToClearSideBorder + this.width / 3 + this.width / 3), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + 128 + 8 + 64 * (index + 1))), this.thirdProfessionColor);
