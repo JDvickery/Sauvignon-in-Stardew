@@ -555,7 +555,14 @@ namespace Sauvignon_in_Stardew
                 if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                 {
                     itemObj.Category = catID;
-                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                    if (catID == -77)
+                    {
+                        itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                    }
+                    else
+                    {
+                        itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                    }
                 }
             }
 
@@ -571,7 +578,14 @@ namespace Sauvignon_in_Stardew
                             if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                             {
                                 itemObj.Category = catID;
-                                itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                if (catID == -77)
+                                {
+                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                }
+                                else
+                                {
+                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                }
                             }
                         }
                     }
@@ -582,7 +596,14 @@ namespace Sauvignon_in_Stardew
                             if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                             {
                                 itemObj.Category = catID;
-                                itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                if (catID == -77)
+                                {
+                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                }
+                                else
+                                {
+                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                }
                             }
                         }
                     }
@@ -591,7 +612,14 @@ namespace Sauvignon_in_Stardew
                         if (cask.heldObject.Value != null && (cask.heldObject.Value.ParentSheetIndex == 348 || cask.heldObject.Value.ParentSheetIndex == 303 || cask.heldObject.Value.ParentSheetIndex == 346 || cask.heldObject.Value.ParentSheetIndex == 459) && cask.heldObject.Value.Category != catID)
                         {
                             cask.heldObject.Value.Category = catID;
-                            cask.heldObject.Value.Price = sellBonus ? (int)(cask.heldObject.Value.Price * 1.4) : cask.heldObject.Value.Price;
+                            if (catID == -77)
+                            {
+                                cask.heldObject.Value.Price = sellBonus ? (int)(cask.heldObject.Value.Price * 1.4) : cask.heldObject.Value.Price;
+                            }
+                            else
+                            {
+                                cask.heldObject.Value.Price = sellBonus ? (int)(cask.heldObject.Value.Price * (1 / 1.4)) : cask.heldObject.Value.Price;
+                            }
                         }
                     }
                 }
@@ -602,7 +630,14 @@ namespace Sauvignon_in_Stardew
                         if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                         {
                             itemObj.Category = catID;
-                            itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                            if (catID == -77)
+                            {
+                                itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                            }
+                            else
+                            {
+                                itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                            }
                         }
                     }
                 }
@@ -617,7 +652,14 @@ namespace Sauvignon_in_Stardew
                                 if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                                 {
                                     itemObj.Category = catID;
-                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                    if (catID == -77)
+                                    {
+                                        itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                    }
+                                    else
+                                    {
+                                        itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                    }
                                 }
                             }
                         }
@@ -628,7 +670,14 @@ namespace Sauvignon_in_Stardew
                                 if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                                 {
                                     itemObj.Category = catID;
-                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                    if (catID == -77)
+                                    {
+                                        itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                    }
+                                    else
+                                    {
+                                        itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                    }
                                 }
                             }
                         }
