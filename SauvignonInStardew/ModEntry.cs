@@ -52,12 +52,8 @@ namespace Sauvignon_in_Stardew
         public int bedTime;
         public int hoursSlept;
 
-        public bool isDistiller;
-        public bool isArtisan;
-
+        public bool sellBonus;
         public Texture2D distillerIcon;
-
-        public bool isSkillsBar;
         /*
          * END FIELDS
          * 
@@ -101,7 +97,7 @@ namespace Sauvignon_in_Stardew
             MenuEvents.MenuClosed += MenuEvents_MenuClosed;
 
             //Event for fixing skills menu
-            GameEvents.UpdateTick += GameEvents_UpdateTick;
+            GraphicsEvents.OnPostRenderGuiEvent += GraphicsEvents_OnPostRenderGuiEvent;
 
             /*
              * Events for save and loading
@@ -139,11 +135,14 @@ namespace Sauvignon_in_Stardew
              * END OF HARMONY PATCHING
              * 
              */
-        }       
+        }
+
+        
+
         /*
-        * END ENTRY
-        * 
-        */
+* END ENTRY
+* 
+*/
 
 
         /*
@@ -168,10 +167,10 @@ namespace Sauvignon_in_Stardew
 
         /*
         * DRAW TO SKILLS PAGE 
-        * 
-        */ 
-        private void GameEvents_UpdateTick(object sender, EventArgs e)
-        {
+        * draw icon and Distiller profession info in Skills Page
+        */
+        private void GraphicsEvents_OnPostRenderGuiEvent(object sender, EventArgs e)
+        {        
             if (Game1.activeClickableMenu is GameMenu menu && menu.currentTab == 1 && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(4))
             {                
                 List<IClickableMenu> pages = helper.Reflection.GetField<List<IClickableMenu>>(menu, "pages").GetValue();
@@ -183,14 +182,16 @@ namespace Sauvignon_in_Stardew
                         {
                             if (skillBar.containsPoint(Game1.getMouseX(), Game1.getMouseY()) && skillBar.myID == 200)
                             {
-                                //local variables
+                                //local variables                                
                                 string textTitle = "Distiller";
-                                string textDescription = "Alcohol sells for 40% more.";
-                                int num3 = LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ru ? page.xPositionOnScreen + page.width - 448 - 48 : page.xPositionOnScreen + IClickableMenu.borderWidth + IClickableMenu.spaceToClearTopBorder + 256 - 8;
-                                int num4 = page.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + IClickableMenu.borderWidth - 8;
+                                string textDescription = "Alcohol worth 40% more.";
 
-                                //draw
-                                monitor.Log("Draw stuff here");
+                                //draw    
+                                    //icon
+                                IClickableMenu.drawTextureBox(Game1.spriteBatch, skillBar.bounds.X - 16 - 8, skillBar.bounds.Y - 16 - 16, 96, 96, Color.White);
+                                Game1.spriteBatch.Draw(distillerIcon, new Vector2((float)(skillBar.bounds.X - 8), (float)(skillBar.bounds.Y - 32 + 16)), new Rectangle(0, 0, 16, 16), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
+                                    //box
+                                IClickableMenu.drawHoverText(Game1.spriteBatch, textDescription, Game1.smallFont, 0, 0, -1, textTitle.Length > 0 ? textTitle : (string)null, -1, (string[])null, (Item)null, 0, -1, -1, -1, -1, 1f, (CraftingRecipe)null);
                             }                            
                         }
                     }
@@ -207,6 +208,9 @@ namespace Sauvignon_in_Stardew
         /*
          * ADD WINERY TO CARPENTER MENU
          * 
+         * CHANGE FARMING LEVEL UP 10 MENU TO DISTILLER MENU
+         * 
+         * SAVE BED TIME FOR KEG BONUS OVERNIGHT
          */
         public void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e)
         {
@@ -308,7 +312,7 @@ namespace Sauvignon_in_Stardew
 
         /*
         * ADD AND REMOVE ARCHWAY
-        * 
+        * Change width of building and add/remove invisible tiles
         */ 
         public void AddArch(Building building)
         {
@@ -357,7 +361,7 @@ namespace Sauvignon_in_Stardew
 
         /*
          * EDIT WINERY WIDTH
-         * 
+         * calls AddArch or RemoveArch depending on what the player did.
          */
         public void LocationEvents_BuildingsChanged(object sender, EventArgsLocationBuildingsChanged e)
         {
@@ -385,7 +389,10 @@ namespace Sauvignon_in_Stardew
 
         /*
          * SAVE AND LOADING
-         * Removing the Wineries, saving their coordinates, replacing with Slime Hutches, and reloading the wineries.
+         * Removing the Wineries, saving their coordinates, replacing with Slime Hutches, 
+         * adding the Artisan profession, changing the category back to Artisan Good,
+         * and reloading the wineries, changing back the category, and removing the Artisan profession
+         * if they have the Distiller profession.
          */
         public void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
         {
@@ -394,8 +401,6 @@ namespace Sauvignon_in_Stardew
             {
                 Game1.player.professions.Remove(4);
             }            
-            monitor.Log("" + Game1.player.professions.ToString());
-            SetItemCategory(-77);
 
             wineryCoords = this.Helper.ReadJsonFile<List<KeyValuePair<int, int>>>($"{Constants.CurrentSavePath}/Winery_Coords.json") ?? new List<KeyValuePair<int, int>>();
             foreach (Building b in Game1.getFarm().buildings)
@@ -417,7 +422,6 @@ namespace Sauvignon_in_Stardew
         {
             //Add Artisan Profession
             Game1.player.professions.Add(4);
-            monitor.Log("" + Game1.player.professions.ToString());
             SetItemCategory(-26);
             //monitor.Log($"Time is" + Game1.timeOfDay);
 
@@ -474,6 +478,7 @@ namespace Sauvignon_in_Stardew
          */
         public void TimeEvents_TimeOfDayChanged(object sender, EventArgsIntChanged e)
         {
+            SetItemCategory(-77);
             //monitor.Log($"Time is " + Game1.timeOfDay + " and it is " + Game1.dayOrNight());
             foreach (Building b in Game1.getFarm().buildings)
             {
@@ -494,7 +499,7 @@ namespace Sauvignon_in_Stardew
 
         /*
          * SPEED UP CASK INSIDE WINERY
-         * 
+         * Also set the item category to Distilled Craft & change seasonal texture
          */
         public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
@@ -535,28 +540,22 @@ namespace Sauvignon_in_Stardew
         public void SetItemCategory(int catID)
         {
 
-            if (Game1.player.professions.Contains(77))
+            if ( Game1.player.professions.Contains(77) )
             {
-                isDistiller = true;
-                isArtisan = false;
-            }
-            else if (Game1.player.professions.Contains(4))
-            {
-                isDistiller = false;
-                isArtisan = true;
+                sellBonus = true;
             }
             else
             {
-                isDistiller = false;
-                isArtisan = false;
+                sellBonus = false;
             }
 
             //check for old wine in player inventory
             foreach (Item item in Game1.player.Items)
             {
-                if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                 {
-                    item.Category = catID;
+                    itemObj.Category = catID;
+                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
                 }
             }
 
@@ -569,9 +568,10 @@ namespace Sauvignon_in_Stardew
                     {
                         foreach (Item item in c.items)
                         {
-                            if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                            if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                             {
-                                item.Category = catID;
+                                itemObj.Category = catID;
+                                itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
                             }
                         }
                     }
@@ -579,9 +579,10 @@ namespace Sauvignon_in_Stardew
                     {
                         foreach (Item item in autoGrabberStorage.items)
                         {
-                            if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                            if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                             {
-                                item.Category = catID;
+                                itemObj.Category = catID;
+                                itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
                             }
                         }
                     }
@@ -590,6 +591,7 @@ namespace Sauvignon_in_Stardew
                         if (cask.heldObject.Value != null && (cask.heldObject.Value.ParentSheetIndex == 348 || cask.heldObject.Value.ParentSheetIndex == 303 || cask.heldObject.Value.ParentSheetIndex == 346 || cask.heldObject.Value.ParentSheetIndex == 459) && cask.heldObject.Value.Category != catID)
                         {
                             cask.heldObject.Value.Category = catID;
+                            cask.heldObject.Value.Price = sellBonus ? (int)(cask.heldObject.Value.Price * 1.4) : cask.heldObject.Value.Price;
                         }
                     }
                 }
@@ -597,9 +599,10 @@ namespace Sauvignon_in_Stardew
                 {
                     foreach (Item item in house.fridge.Value.items)
                     {
-                        if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                        if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                         {
-                            item.Category = catID;
+                            itemObj.Category = catID;
+                            itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
                         }
                     }
                 }
@@ -611,9 +614,10 @@ namespace Sauvignon_in_Stardew
                         {
                             foreach (Item item in mill.output.Value.items)
                             {
-                                if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                                if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                                 {
-                                    item.Category = catID;
+                                    itemObj.Category = catID;
+                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
                                 }
                             }
                         }
@@ -621,9 +625,10 @@ namespace Sauvignon_in_Stardew
                         {
                             foreach (Item item in hut.output.Value.items)
                             {
-                                if (item != null && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                                if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
                                 {
-                                    item.Category = catID;
+                                    itemObj.Category = catID;
+                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
                                 }
                             }
                         }
@@ -634,35 +639,6 @@ namespace Sauvignon_in_Stardew
         }
         /*
          * END SET ITEM CATEGORY
-         * 
-         */
-
-
-
-
-        /*
-         * FIX ISSUE WITH WINERY MAP
-         * 
-         */
-        public void GraphicsEvents_OnPreRenderEvent(object sender, EventArgs e)
-        {
-            if (Game1.hasLoadedGame)
-            {
-                if (Game1.currentLocation.mapPath.Value == "Maps\\Winery" && Game1.currentLocation != null)
-                {
-                    layer = Game1.currentLocation.map.GetLayer("Buildings");
-                    TileSheet tilesheet = Game1.currentLocation.map.GetTileSheet("untitled tile sheet");
-                    int tileID_var = 1367;
-                    for (int y = 6; y < 10; y++)
-                    {
-                        Game1.currentLocation.removeTile(16, y, "Buildings");
-                        layer.Tiles[16, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, tileID_var);
-                    }
-                }
-            }
-        }
-         /*
-         * END ISSUE FIX
          * 
          */
 
@@ -693,33 +669,20 @@ namespace Sauvignon_in_Stardew
                         {
                             if (obj.heldObject.Value != null)
                             {
-                                Vector2 vector2;
-                                Vector2 vector2_1;
-                                string text1;
-                                float num2;
-                                float num3;
-                                Vector2 tooltipOffset = this.TooltipOffset;
+                                string textTimeRemaining;
 
                                 if (obj.Name.Equals("Keg") && obj.MinutesUntilReady > 0)
                                 {
-                                    text1 = Math.Round((obj.MinutesUntilReady * 0.6) / 84, 1).ToString() + " minutes";
-                                    vector2 = Game1.smallFont.MeasureString(text1);
-                                    vector2_1 = new Vector2(ToFloat(vector2.X + 5.0 + 5.0), ToFloat(vector2.Y + 5.0));
-                                    num2 = (float)Mouse.GetState().X / Game1.options.zoomLevel - tooltipOffset.X - vector2_1.X;
-                                    num3 = (float)((double)Mouse.GetState().Y / (double)Game1.options.zoomLevel + (double)tooltipOffset.Y + 12.0);
-                                    IClickableMenu.drawTextureBox(Game1.spriteBatch, Game1.menuTexture, this.TooltipSourceRect, (int)num2, (int)num3, (int)vector2_1.X + 27, (int)vector2_1.Y + 20, Color.White, 1f, true);
-                                    Utility.drawTextWithShadow(Game1.spriteBatch, text1, Game1.smallFont, new Vector2((float)((double)num2 + (double)vector2_1.X) - (vector2.X - 4), (float)((double)num3 + 6.0 + 5.0)), Game1.textColor, 1f, -1f, -1, -1, 1f, 3);
+                                    textTimeRemaining = Math.Round((obj.MinutesUntilReady * 0.6) / 84, 1).ToString() + " minutes";
+
+                                    IClickableMenu.drawHoverText(Game1.spriteBatch, textTimeRemaining, Game1.smallFont, 0, 0, -1, obj.heldObject.Value.Name.Length > 0 ? obj.heldObject.Value.Name : (string)null, -1, (string[])null, (Item)null, 0, -1, -1, -1, -1, 1f, (CraftingRecipe)null);
                                 }
 
                                 if (obj is Cask c && c.daysToMature.Value > 0)
                                 {
-                                    text1 = Math.Round(c.daysToMature.Value * 0.6, 1).ToString() + " days";
-                                    vector2 = Game1.smallFont.MeasureString(text1);
-                                    vector2_1 = new Vector2(ToFloat(vector2.X + 5.0 + 5.0), ToFloat(vector2.Y + 5.0));
-                                    num2 = (float)Mouse.GetState().X / Game1.options.zoomLevel - tooltipOffset.X - vector2_1.X;
-                                    num3 = (float)((double)Mouse.GetState().Y / (double)Game1.options.zoomLevel + (double)tooltipOffset.Y + 12.0);
-                                    IClickableMenu.drawTextureBox(Game1.spriteBatch, Game1.menuTexture, this.TooltipSourceRect, (int)num2, (int)num3, (int)vector2_1.X + 27, (int)vector2_1.Y + 20, Color.White, 1f, true);
-                                    Utility.drawTextWithShadow(Game1.spriteBatch, text1, Game1.smallFont, new Vector2((float)((double)num2 + (double)vector2_1.X) - (vector2.X - 4), (float)((double)num3 + 6.0 + 5.0)), Game1.textColor, 1f, -1f, -1, -1, 1f, 3);
+                                    textTimeRemaining = Math.Round(c.daysToMature.Value * 0.6, 1).ToString() + " days";
+
+                                    IClickableMenu.drawHoverText(Game1.spriteBatch, textTimeRemaining, Game1.smallFont, 0, 0, -1, obj.heldObject.Value.Name.Length > 0 ? obj.heldObject.Value.Name : (string)null, -1, (string[])null, (Item)null, 0, -1, -1, -1, -1, 1f, (CraftingRecipe)null);
                                 }
                             }
                         }
