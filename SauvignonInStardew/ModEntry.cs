@@ -421,7 +421,10 @@ namespace Sauvignon_in_Stardew
         public void SaveEvents_BeforeSave(object sender, EventArgs e)
         {
             //Add Artisan Profession
-            Game1.player.professions.Add(4);
+            if (Game1.player.professions.Contains(77))
+            {
+                Game1.player.professions.Add(4);
+            }            
             SetItemCategory(-26);
             //monitor.Log($"Time is" + Game1.timeOfDay);
 
@@ -515,6 +518,8 @@ namespace Sauvignon_in_Stardew
                 Winery_outdoors = helper.Content.Load<Texture2D>($"assets/Winery_outside_{Game1.currentSeason}.png", ContentSource.ModFolder);
                 helper.Content.InvalidateCache("Buildings/Winery");
             }
+
+            helper.Content.InvalidateCache("Maps/Winery");
 
             //reduce time for casks
             foreach (Building b in Game1.getFarm().buildings)
@@ -619,6 +624,21 @@ namespace Sauvignon_in_Stardew
                             else
                             {
                                 cask.heldObject.Value.Price = sellBonus ? (int)(cask.heldObject.Value.Price * (1 / 1.4)) : cask.heldObject.Value.Price;
+                            }
+                        }
+                    }
+                    else if (obj.Name.Equals("Keg"))
+                    {
+                        if (obj.heldObject.Value != null && (obj.heldObject.Value.ParentSheetIndex == 348 || obj.heldObject.Value.ParentSheetIndex == 303 || obj.heldObject.Value.ParentSheetIndex == 346 || obj.heldObject.Value.ParentSheetIndex == 459) && obj.heldObject.Value.Category != catID)
+                        {
+                            obj.heldObject.Value.Category = catID;
+                            if (catID == -77)
+                            {
+                                obj.heldObject.Value.Price = sellBonus ? (int)(obj.heldObject.Value.Price * 1.4) : obj.heldObject.Value.Price;
+                            }
+                            else
+                            {
+                                obj.heldObject.Value.Price = sellBonus ? (int)(obj.heldObject.Value.Price * (1 / 1.4)) : obj.heldObject.Value.Price;
                             }
                         }
                     }
