@@ -21,11 +21,15 @@ using StardewValley.Objects;
 using System.Linq;
 using xTile.Layers;
 using xTile.Tiles;
+using SauvignonInStardew;
 
 namespace Sauvignon_in_Stardew
 {
     class ModEntry : Mod, IAssetLoader, IAssetEditor
     {
+        //Config
+        private ModConfig Config;
+        public bool DistillerProfessionActive;
         /*
          * FIELDS
          * 
@@ -69,6 +73,9 @@ namespace Sauvignon_in_Stardew
         {
             ModEntry.monitor = this.Monitor;
             ModEntry.helper = helper;
+
+            this.Config = helper.ReadConfig<ModConfig>();
+            this.DistillerProfessionActive = this.Config.DistillerProfessionBool;
 
             //Loaded Textures for outside and indside the Winery
             Winery_outdoors = helper.Content.Load<Texture2D>($"assets/Winery_outside_{Game1.currentSeason}.png", ContentSource.ModFolder);
@@ -122,15 +129,18 @@ namespace Sauvignon_in_Stardew
             MethodInfo method = type.GetMethod("performObjectDropInAction");
             HarmonyMethod patchMethod = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_performObjectDropInAction)));
             harmony.Patch(method, patchMethod, null);
-            
-            Type type2 = typeof(SObject);
-            MethodInfo method2 = type2.GetMethod("getCategoryColor");
-            HarmonyMethod patchMethod2 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryColor)));
-            harmony.Patch(method2, patchMethod2, null);
 
-            MethodInfo method3 = type2.GetMethod("getCategoryName");
-            HarmonyMethod patchMethod3 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryName)));
-            harmony.Patch(method3, patchMethod3, null);
+            if (this.DistillerProfessionActive)
+            {
+                Type type2 = typeof(SObject);
+                MethodInfo method2 = type2.GetMethod("getCategoryColor");
+                HarmonyMethod patchMethod2 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryColor)));
+                harmony.Patch(method2, patchMethod2, null);
+
+                MethodInfo method3 = type2.GetMethod("getCategoryName");
+                HarmonyMethod patchMethod3 = new HarmonyMethod(typeof(ModEntry).GetMethod(nameof(Patch_getCategoryName)));
+                harmony.Patch(method3, patchMethod3, null);
+            }
             /*
              * END OF HARMONY PATCHING
              * 
@@ -170,9 +180,9 @@ namespace Sauvignon_in_Stardew
         * draw icon and Distiller profession info in Skills Page
         */
         private void GraphicsEvents_OnPostRenderGuiEvent(object sender, EventArgs e)
-        {        
+        {
             if (Game1.activeClickableMenu is GameMenu menu && menu.currentTab == 1 && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(4))
-            {                
+            {
                 List<IClickableMenu> pages = helper.Reflection.GetField<List<IClickableMenu>>(menu, "pages").GetValue();
                 foreach (IClickableMenu page in pages)
                 {
@@ -180,19 +190,19 @@ namespace Sauvignon_in_Stardew
                     {
                         foreach (ClickableTextureComponent skillBar in skillsPage.skillBars)
                         {
-                            if (skillBar.containsPoint(Game1.getMouseX(), Game1.getMouseY()) && skillBar.myID == 200)
+                            if (this.DistillerProfessionActive && skillBar.containsPoint(Game1.getMouseX(), Game1.getMouseY()) && skillBar.myID == 200)
                             {
                                 //local variables                                
                                 string textTitle = "Distiller";
                                 string textDescription = "Alcohol worth 40% more.";
 
                                 //draw    
-                                    //icon
+                                //icon
                                 IClickableMenu.drawTextureBox(Game1.spriteBatch, skillBar.bounds.X - 16 - 8, skillBar.bounds.Y - 16 - 16, 96, 96, Color.White);
                                 Game1.spriteBatch.Draw(distillerIcon, new Vector2((float)(skillBar.bounds.X - 8), (float)(skillBar.bounds.Y - 32 + 16)), new Rectangle(0, 0, 16, 16), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
-                                    //box
+                                //box
                                 IClickableMenu.drawHoverText(Game1.spriteBatch, textDescription, Game1.smallFont, 0, 0, -1, textTitle.Length > 0 ? textTitle : (string)null, -1, (string[])null, (Item)null, 0, -1, -1, -1, -1, 1f, (CraftingRecipe)null);
-                            }                            
+                            }
                         }
                     }
                 }
@@ -215,12 +225,14 @@ namespace Sauvignon_in_Stardew
         public void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e)
         {
             //monitor.Log($"Current menu type is " + e.NewMenu);            
-
-            if (!(Game1.activeClickableMenu is DistillerMenu) && Game1.activeClickableMenu is LevelUpMenu lvlMenu && lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
+            if (this.DistillerProfessionActive)
             {
-                Game1.activeClickableMenu = new DistillerMenu(0, 10, distillerIcon);
-                //monitor.Log($"Player professions are "+Game1.player.professions.ToString());
-            }            
+                if (!(Game1.activeClickableMenu is DistillerMenu) && Game1.activeClickableMenu is LevelUpMenu lvlMenu && lvlMenu.isProfessionChooser == true && typeof(LevelUpMenu).GetField("currentSkill", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(0) && typeof(LevelUpMenu).GetField("currentLevel", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(lvlMenu).Equals(10))
+                {
+                    Game1.activeClickableMenu = new DistillerMenu(0, 10, distillerIcon);
+                    //monitor.Log($"Player professions are "+Game1.player.professions.ToString());
+                }
+            }
 
             if (e.NewMenu is DialogueBox box && box.getCurrentString().Contains("sleep for the night"))
             {
@@ -244,13 +256,13 @@ namespace Sauvignon_in_Stardew
                         name = "Winery",
                         displayName = "Winery",
                         description = "Kegs and Casks inside work 30% faster and display time remaining.",
-                        daysToConstruct = 0,//4
-                        moneyRequired = 0 //40000
+                        daysToConstruct = 4,//4
+                        moneyRequired = 40000 //40000
                     };
                     wineryBluePrint.itemsRequired.Clear();
-                    wineryBluePrint.itemsRequired.Add(709, 0);//200
-                    wineryBluePrint.itemsRequired.Add(330, 0);//100
-                    wineryBluePrint.itemsRequired.Add(390, 0);//100
+                    wineryBluePrint.itemsRequired.Add(709, 200);//200
+                    wineryBluePrint.itemsRequired.Add(330, 100);//100
+                    wineryBluePrint.itemsRequired.Add(390, 100);//100
 
                     SetBluePrintField(wineryBluePrint, "textureName", "Buildings\\Winery");
                     SetBluePrintField(wineryBluePrint, "texture", Game1.content.Load<Texture2D>(wineryBluePrint.textureName));
@@ -396,8 +408,24 @@ namespace Sauvignon_in_Stardew
          */
         public void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
         {
+            if (DistillerProfessionActive)
+            {
+                monitor.Log("Distiller Profession is Active");
+                if (Game1.player.professions.Contains(77))
+                {
+                    monitor.Log("You are a Distiller");
+                }
+                else
+                {
+                    monitor.Log("You are not a Distiller. Reach Level 10 Farming or go to the Statue in the Sewers.");
+                }
+            }
+            else
+            {
+                monitor.Log("Distiller Profession is Inactive");
+            }
             //Remove Artisan Profession if the have selected Distiller Profession
-            if (Game1.player.professions.Contains(77))
+            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
             {
                 Game1.player.professions.Remove(4);
             }            
@@ -421,7 +449,7 @@ namespace Sauvignon_in_Stardew
         public void SaveEvents_BeforeSave(object sender, EventArgs e)
         {
             //Add Artisan Profession
-            if (Game1.player.professions.Contains(77))
+            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
             {
                 Game1.player.professions.Add(4);
             }            
@@ -481,7 +509,10 @@ namespace Sauvignon_in_Stardew
          */
         public void TimeEvents_TimeOfDayChanged(object sender, EventArgsIntChanged e)
         {
-            SetItemCategory(-77);
+            if (this.DistillerProfessionActive)
+            {
+                SetItemCategory(-77);
+            }
             //monitor.Log($"Time is " + Game1.timeOfDay + " and it is " + Game1.dayOrNight());
             foreach (Building b in Game1.getFarm().buildings)
             {
@@ -506,7 +537,10 @@ namespace Sauvignon_in_Stardew
          */
         public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
-            SetItemCategory(-77);
+            if (this.DistillerProfessionActive)
+            {
+                SetItemCategory(-77);
+            }
             //Game1.activeClickableMenu = new LevelUpMenu(0, 10);
 
             //set seasonal building and reload texture
@@ -545,7 +579,7 @@ namespace Sauvignon_in_Stardew
         public void SetItemCategory(int catID)
         {
 
-            if ( Game1.player.professions.Contains(77) )
+            if ( this.DistillerProfessionActive && Game1.player.professions.Contains(77) )
             {
                 sellBonus = true;
             }
