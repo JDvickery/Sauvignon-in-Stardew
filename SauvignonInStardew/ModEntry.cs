@@ -114,6 +114,7 @@ namespace Sauvignon_in_Stardew
 
             SaveEvents.AfterSave += SaveEvents_AfterSaveLoad;
             SaveEvents.AfterLoad += SaveEvents_AfterSaveLoad;
+            SaveEvents.AfterLoad += DisplayDistillerInfo;
             /*
              * End of Events for save and loading
              * 
@@ -173,6 +174,30 @@ namespace Sauvignon_in_Stardew
          * END GET GAME LOCATIONS
          * 
          */
+
+
+        /*
+        * Log Distiller info
+        */ 
+        public void DisplayDistillerInfo(object sender, EventArgs e)
+        {
+            if (DistillerProfessionActive)
+            {
+                monitor.Log("Distiller Profession is Active", LogLevel.Info);
+                if (Game1.player.professions.Contains(77))
+                {
+                    monitor.Log("You are a Distiller", LogLevel.Info);
+                }
+                else
+                {
+                    monitor.Log("You are not a Distiller. Reach Level 10 Farming or go to the Statue in the Sewers to reset your Farming Professions.", LogLevel.Info);
+                }
+            }
+            else
+            {
+                monitor.Log("Distiller Profession is Inactive", LogLevel.Info);
+            }
+        }
 
 
         /*
@@ -407,23 +432,7 @@ namespace Sauvignon_in_Stardew
          * if they have the Distiller profession.
          */
         public void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
-        {
-            if (DistillerProfessionActive)
-            {
-                monitor.Log("Distiller Profession is Active");
-                if (Game1.player.professions.Contains(77))
-                {
-                    monitor.Log("You are a Distiller");
-                }
-                else
-                {
-                    monitor.Log("You are not a Distiller. Reach Level 10 Farming or go to the Statue in the Sewers.");
-                }
-            }
-            else
-            {
-                monitor.Log("Distiller Profession is Inactive");
-            }
+        {            
             //Remove Artisan Profession if the have selected Distiller Profession
             if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
             {
@@ -448,20 +457,24 @@ namespace Sauvignon_in_Stardew
 
         public void SaveEvents_BeforeSave(object sender, EventArgs e)
         {
-            //Add Artisan Profession
+            //Add Artisan Profession, if player is level 10 farming and has no profession, remove Distiller
             if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
             {
-                Game1.player.professions.Add(4);
+                if ( Game1.player.FarmingLevel > 9 && !( Game1.player.professions.Contains(1) ) )
+                {
+                    Game1.player.professions.Remove(77);
+                }
+                else
+                {
+                    Game1.player.professions.Add(4);
+                }                
             }            
             SetItemCategory(-26);
-            //monitor.Log($"Time is" + Game1.timeOfDay);
 
             //calculate time slept            
             if (bedTime > 0)
             {
                 hoursSlept = ((2400 - bedTime) + Game1.timeOfDay);
-                //monitor.Log($"BedTime was " + bedTime + ". Wake up time was " + Game1.timeOfDay + ". You slept " + hoursSlept/100 + ".");
-                //monitor.Log($"Time to reduce is " + Math.Round(hoursSlept * 0.3, 0));
             }
 
             //reduce time for kegs overnight
@@ -479,8 +492,7 @@ namespace Sauvignon_in_Stardew
                 }
             }
 
-            //SetItemCategory(-26);
-
+            //save coordinates to json file and replace with slime hutch
             wineryCoords.Clear();
             foreach (Building b in Game1.getFarm().buildings)
             {
@@ -596,11 +608,11 @@ namespace Sauvignon_in_Stardew
                     itemObj.Category = catID;
                     if (catID == -77)
                     {
-                        itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                        itemObj.Price = sellBonus ? (int)( Math.Ceiling((float)itemObj.Price * 1.4) ) : itemObj.Price;
                     }
                     else
                     {
-                        itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                        itemObj.Price = sellBonus ? (int)( Math.Ceiling((float)itemObj.Price * (1 / 1.4)) ) : itemObj.Price;
                     }
                 }
             }
@@ -619,11 +631,11 @@ namespace Sauvignon_in_Stardew
                                 itemObj.Category = catID;
                                 if (catID == -77)
                                 {
-                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                    itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
                                 }
                                 else
                                 {
-                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                    itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
                                 }
                             }
                         }
@@ -637,11 +649,11 @@ namespace Sauvignon_in_Stardew
                                 itemObj.Category = catID;
                                 if (catID == -77)
                                 {
-                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                    itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
                                 }
                                 else
                                 {
-                                    itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                    itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
                                 }
                             }
                         }
@@ -653,11 +665,11 @@ namespace Sauvignon_in_Stardew
                             cask.heldObject.Value.Category = catID;
                             if (catID == -77)
                             {
-                                cask.heldObject.Value.Price = sellBonus ? (int)(cask.heldObject.Value.Price * 1.4) : cask.heldObject.Value.Price;
+                                cask.heldObject.Value.Price = sellBonus ? (int)(Math.Ceiling((float)cask.heldObject.Value.Price * 1.4)) : cask.heldObject.Value.Price;
                             }
                             else
                             {
-                                cask.heldObject.Value.Price = sellBonus ? (int)(cask.heldObject.Value.Price * (1 / 1.4)) : cask.heldObject.Value.Price;
+                                cask.heldObject.Value.Price = sellBonus ? (int)(Math.Ceiling((float)cask.heldObject.Value.Price * (1 / 1.4))) : cask.heldObject.Value.Price;
                             }
                         }
                     }
@@ -668,11 +680,11 @@ namespace Sauvignon_in_Stardew
                             obj.heldObject.Value.Category = catID;
                             if (catID == -77)
                             {
-                                obj.heldObject.Value.Price = sellBonus ? (int)(obj.heldObject.Value.Price * 1.4) : obj.heldObject.Value.Price;
+                                obj.heldObject.Value.Price = sellBonus ? (int)(Math.Ceiling((float)obj.heldObject.Value.Price * 1.4)) : obj.heldObject.Value.Price;
                             }
                             else
                             {
-                                obj.heldObject.Value.Price = sellBonus ? (int)(obj.heldObject.Value.Price * (1 / 1.4)) : obj.heldObject.Value.Price;
+                                obj.heldObject.Value.Price = sellBonus ? (int)(Math.Ceiling((float)obj.heldObject.Value.Price * (1 / 1.4))) : obj.heldObject.Value.Price;
                             }
                         }
                     }
@@ -686,11 +698,11 @@ namespace Sauvignon_in_Stardew
                             itemObj.Category = catID;
                             if (catID == -77)
                             {
-                                itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
                             }
                             else
                             {
-                                itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
                             }
                         }
                     }
@@ -708,11 +720,11 @@ namespace Sauvignon_in_Stardew
                                     itemObj.Category = catID;
                                     if (catID == -77)
                                     {
-                                        itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                        itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
                                     }
                                     else
                                     {
-                                        itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                        itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
                                     }
                                 }
                             }
@@ -726,11 +738,11 @@ namespace Sauvignon_in_Stardew
                                     itemObj.Category = catID;
                                     if (catID == -77)
                                     {
-                                        itemObj.Price = sellBonus ? (int)(itemObj.Price * 1.4) : itemObj.Price;
+                                        itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
                                     }
                                     else
                                     {
-                                        itemObj.Price = sellBonus ? (int)(itemObj.Price * (1 / 1.4)) : itemObj.Price;
+                                        itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
                                     }
                                 }
                             }
