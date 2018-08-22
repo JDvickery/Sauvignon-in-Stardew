@@ -58,6 +58,9 @@ namespace Sauvignon_in_Stardew
 
         public bool sellBonus;
         public Texture2D distillerIcon;
+
+        public string sleepBox;
+        public bool ranOnce = false;
         /*
          * END FIELDS
          * 
@@ -84,6 +87,9 @@ namespace Sauvignon_in_Stardew
             //Loaded texture for Distiller Icon
             distillerIcon = helper.Content.Load<Texture2D>("assets/Distiller_icon.png", ContentSource.ModFolder);
 
+            //Load string for sleeping dialogue
+            sleepBox = Game1.content.LoadString("Strings\\Locations:FarmHouse_Bed_GoToSleep");
+
             //Event for adding blueprint to carpenter menu
             MenuEvents.MenuChanged += MenuEvents_MenuChanged;
 
@@ -105,6 +111,9 @@ namespace Sauvignon_in_Stardew
 
             //Event for fixing skills menu
             GraphicsEvents.OnPostRenderGuiEvent += GraphicsEvents_OnPostRenderGuiEvent;
+
+            //Event for Bonus Price and Bed Time if dead or faint
+            GameEvents.UpdateTick += GameEvents_UpdateTick;
 
             /*
              * Events for save and loading
@@ -146,14 +155,12 @@ namespace Sauvignon_in_Stardew
              * END OF HARMONY PATCHING
              * 
              */
-        }
-
-        
+        }        
 
         /*
-* END ENTRY
-* 
-*/
+        * END ENTRY
+        * 
+        */
 
 
         /*
@@ -177,8 +184,56 @@ namespace Sauvignon_in_Stardew
 
 
         /*
+         * Set Sleep and Prices on death or faint
+         * Set ranOnce back to false at start of day
+         */
+        private void GameEvents_UpdateTick(object sender, EventArgs e)
+        {
+            /*
+            if ((Game1.player.health <= 0 || Game1.player.stamina <= 0) && !ranOnce)
+            {
+                bedTime = Game1.timeOfDay;
+                SetBonusPrice();
+            }
+
+
+            if (Game1.activeClickableMenu is DialogueBox box && !ranOnce && box.getCurrentString() == sleepBox)
+            {
+                try
+                {
+                    monitor.Log(box+" is open");
+                    if (box.responseCC != null)
+                    {
+                        foreach (ClickableComponent response in box.responseCC)
+                        {
+                            if (response != null && response.myID == 1 && (Game1.getMouseX() > response.bounds.X && Game1.getMouseX() < response.bounds.X + response.bounds.Width) && (Game1.getMouseY() > response.bounds.Y && Game1.getMouseY() < response.bounds.Y + response.bounds.Height))
+                            {
+                                monitor.Log("No");
+                                ranOnce = true;
+                            }
+                        }
+                    }
+                }
+                catch (ArgumentOutOfRangeException) { }
+            }
+            */
+            if(Game1.player.CurrentEmoteIndex.Equals(24) && !ranOnce)
+            {                
+                bedTime = Game1.timeOfDay;
+                monitor.Log("Your bed time was " + bedTime,LogLevel.Info);
+                SetBonusPrice();
+                ranOnce = true;
+            }
+        }
+        /*
+         * End Sleep and Faint
+         * 
+         */
+
+
+        /*
         * Log Distiller info
-        */ 
+        */
         public void DisplayDistillerInfo(object sender, EventArgs e)
         {
             if (DistillerProfessionActive)
@@ -257,12 +312,7 @@ namespace Sauvignon_in_Stardew
                     Game1.activeClickableMenu = new DistillerMenu(0, 10, distillerIcon);
                     //monitor.Log($"Player professions are "+Game1.player.professions.ToString());
                 }
-            }
-
-            if (e.NewMenu is DialogueBox box && box.getCurrentString().Contains("sleep for the night"))
-            {
-                bedTime = Game1.timeOfDay;
-            }
+            }           
 
             if (e.NewMenu is CarpenterMenu)
             {
@@ -322,13 +372,7 @@ namespace Sauvignon_in_Stardew
 
         //sets back Winery widths to 8 for Archway walkthrough and add back invisible tiles
         private void MenuEvents_MenuClosed(object sender, EventArgsClickableMenuClosed e)
-        {
-            /*
-            if (e.PriorMenu is LevelUpMenu)
-            {
-                monitor.Log($"" + Game1.player.professions.ToString());
-            }
-            */
+        {           
             if (e.PriorMenu is CarpenterMenu)
             {
                 foreach(Building building in Game1.getFarm().buildings)
@@ -338,7 +382,7 @@ namespace Sauvignon_in_Stardew
                         AddArch(building);
                     }
                 }
-            }
+            }            
         }
         /*
          * END OF ADDING WINERY TO CARPENTER MENU
@@ -532,7 +576,11 @@ namespace Sauvignon_in_Stardew
                     foreach (SObject o in b.indoors.Value.Objects.Values)
                     {
                         if (o.Name.Equals("Keg"))
+                        {
                             o.MinutesUntilReady -= 3;
+
+                            o.MinutesUntilReady = 0;
+                        }
                     }
             }
         }
@@ -549,6 +597,8 @@ namespace Sauvignon_in_Stardew
          */
         public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
+            ranOnce = false;
+
             if (this.DistillerProfessionActive)
             {
                 SetItemCategory(-77);
@@ -585,13 +635,17 @@ namespace Sauvignon_in_Stardew
 
 
         /*
-        * SET ITEM CATEGORY
-        * and item sell price for Distiller Profession
-        */
-        public void SetItemCategory(int catID)
+		* SET BONUS PRICE
+		*
+		*/
+        public bool IsAlcohol(Item item)
         {
+            return (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459);
+        }
 
-            if ( this.DistillerProfessionActive && Game1.player.professions.Contains(77) )
+        public void SetBonusPrice()
+        {
+            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
             {
                 sellBonus = true;
             }
@@ -600,24 +654,36 @@ namespace Sauvignon_in_Stardew
                 sellBonus = false;
             }
 
-            //check for old wine in player inventory
+            foreach (Item item in Game1.getFarm().shippingBin)
+            {
+                if ( sellBonus && item != null && item is SObject booze && IsAlcohol(item) )
+                {
+                    booze.Price = (int)(Math.Ceiling((float)booze.Price * 1.4));
+                    monitor.Log(booze.Name + " price is " + booze.Price);
+                }
+            }
+        }
+        /*
+		* END SET BONUS PRICE
+		*
+		*/
+
+        /*
+        * SET ITEM CATEGORY
+        * 
+        */
+        public void SetItemCategory(int catID)
+        {
+            //check for old alcohol in player inventory
             foreach (Item item in Game1.player.Items)
             {
-                if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                if (item != null && item is SObject booze && IsAlcohol(item) && item.Category != catID)
                 {
-                    itemObj.Category = catID;
-                    if (catID == -77)
-                    {
-                        itemObj.Price = sellBonus ? (int)( Math.Ceiling((float)itemObj.Price * 1.4) ) : itemObj.Price;
-                    }
-                    else
-                    {
-                        itemObj.Price = sellBonus ? (int)( Math.Ceiling((float)itemObj.Price * (1 / 1.4)) ) : itemObj.Price;
-                    }
+                    booze.Category = catID;
                 }
             }
 
-            //check for old wine everywhere else
+            //check for old alcohol everywhere else
             foreach (GameLocation location in ModEntry.GetLocations())
             {
                 foreach (SObject obj in location.Objects.Values)
@@ -626,17 +692,9 @@ namespace Sauvignon_in_Stardew
                     {
                         foreach (Item item in c.items)
                         {
-                            if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                            if (item != null && item is SObject booze && IsAlcohol(item) && item.Category != catID)
                             {
-                                itemObj.Category = catID;
-                                if (catID == -77)
-                                {
-                                    itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
-                                }
-                                else
-                                {
-                                    itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
-                                }
+                                booze.Category = catID;
                             }
                         }
                     }
@@ -644,48 +702,24 @@ namespace Sauvignon_in_Stardew
                     {
                         foreach (Item item in autoGrabberStorage.items)
                         {
-                            if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                            if (item != null && item is SObject booze && IsAlcohol(item) && item.Category != catID)
                             {
-                                itemObj.Category = catID;
-                                if (catID == -77)
-                                {
-                                    itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
-                                }
-                                else
-                                {
-                                    itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
-                                }
+                                booze.Category = catID;
                             }
                         }
                     }
                     else if (obj is Cask cask)
                     {
-                        if (cask.heldObject.Value != null && (cask.heldObject.Value.ParentSheetIndex == 348 || cask.heldObject.Value.ParentSheetIndex == 303 || cask.heldObject.Value.ParentSheetIndex == 346 || cask.heldObject.Value.ParentSheetIndex == 459) && cask.heldObject.Value.Category != catID)
+                        if (cask.heldObject.Value != null && cask.heldObject.Value is SObject booze && IsAlcohol(cask.heldObject.Value) && cask.heldObject.Value.Category != catID)
                         {
                             cask.heldObject.Value.Category = catID;
-                            if (catID == -77)
-                            {
-                                cask.heldObject.Value.Price = sellBonus ? (int)(Math.Ceiling((float)cask.heldObject.Value.Price * 1.4)) : cask.heldObject.Value.Price;
-                            }
-                            else
-                            {
-                                cask.heldObject.Value.Price = sellBonus ? (int)(Math.Ceiling((float)cask.heldObject.Value.Price * (1 / 1.4))) : cask.heldObject.Value.Price;
-                            }
                         }
                     }
-                    else if (obj.Name.Equals("Keg"))
+                    else if (obj.Name.Equals("keg"))
                     {
-                        if (obj.heldObject.Value != null && (obj.heldObject.Value.ParentSheetIndex == 348 || obj.heldObject.Value.ParentSheetIndex == 303 || obj.heldObject.Value.ParentSheetIndex == 346 || obj.heldObject.Value.ParentSheetIndex == 459) && obj.heldObject.Value.Category != catID)
+                        if (obj.heldObject.Value != null && obj.heldObject.Value is SObject booze && IsAlcohol(obj.heldObject.Value) && obj.heldObject.Value.Category != catID)
                         {
                             obj.heldObject.Value.Category = catID;
-                            if (catID == -77)
-                            {
-                                obj.heldObject.Value.Price = sellBonus ? (int)(Math.Ceiling((float)obj.heldObject.Value.Price * 1.4)) : obj.heldObject.Value.Price;
-                            }
-                            else
-                            {
-                                obj.heldObject.Value.Price = sellBonus ? (int)(Math.Ceiling((float)obj.heldObject.Value.Price * (1 / 1.4))) : obj.heldObject.Value.Price;
-                            }
                         }
                     }
                 }
@@ -693,17 +727,9 @@ namespace Sauvignon_in_Stardew
                 {
                     foreach (Item item in house.fridge.Value.items)
                     {
-                        if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                        if (item != null && item is SObject booze && IsAlcohol(item) && item.Category != catID)
                         {
-                            itemObj.Category = catID;
-                            if (catID == -77)
-                            {
-                                itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
-                            }
-                            else
-                            {
-                                itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
-                            }
+                            booze.Category = catID;
                         }
                     }
                 }
@@ -715,17 +741,9 @@ namespace Sauvignon_in_Stardew
                         {
                             foreach (Item item in mill.output.Value.items)
                             {
-                                if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                                if (item != null && item is SObject booze && IsAlcohol(item) && item.Category != catID)
                                 {
-                                    itemObj.Category = catID;
-                                    if (catID == -77)
-                                    {
-                                        itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
-                                    }
-                                    else
-                                    {
-                                        itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
-                                    }
+                                    booze.Category = catID;
                                 }
                             }
                         }
@@ -733,24 +751,16 @@ namespace Sauvignon_in_Stardew
                         {
                             foreach (Item item in hut.output.Value.items)
                             {
-                                if (item != null && item is SObject itemObj && (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459) && item.Category != catID)
+                                if (item != null && item is SObject booze && IsAlcohol(item) && item.Category != catID)
                                 {
-                                    itemObj.Category = catID;
-                                    if (catID == -77)
-                                    {
-                                        itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * 1.4)) : itemObj.Price;
-                                    }
-                                    else
-                                    {
-                                        itemObj.Price = sellBonus ? (int)(Math.Ceiling((float)itemObj.Price * (1 / 1.4))) : itemObj.Price;
-                                    }
+                                    booze.Category = catID;
                                 }
                             }
                         }
                     }
                 }
             }
-            //end old wine check
+            //end old alcohol check
         }
         /*
          * END SET ITEM CATEGORY
