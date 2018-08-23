@@ -56,7 +56,6 @@ namespace Sauvignon_in_Stardew
         public int bedTime;
         public int hoursSlept;
 
-        public bool sellBonus;
         public Texture2D distillerIcon;
 
         public string sleepBox;
@@ -155,8 +154,7 @@ namespace Sauvignon_in_Stardew
              * END OF HARMONY PATCHING
              * 
              */
-        }        
-
+        }
         /*
         * END ENTRY
         * 
@@ -186,43 +184,19 @@ namespace Sauvignon_in_Stardew
         /*
          * Set Sleep and Prices on death or faint
          * Set ranOnce back to false at start of day
+         * Remove Distiller profession if player is level 10 and does not have tiller
          */
         private void GameEvents_UpdateTick(object sender, EventArgs e)
         {
-            /*
             if ((Game1.player.health <= 0 || Game1.player.stamina <= 0) && !ranOnce)
             {
                 bedTime = Game1.timeOfDay;
                 SetBonusPrice();
             }
 
-
-            if (Game1.activeClickableMenu is DialogueBox box && !ranOnce && box.getCurrentString() == sleepBox)
+            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77) && Game1.player.FarmingLevel > 9 && !(Game1.player.professions.Contains(1)))
             {
-                try
-                {
-                    monitor.Log(box+" is open");
-                    if (box.responseCC != null)
-                    {
-                        foreach (ClickableComponent response in box.responseCC)
-                        {
-                            if (response != null && response.myID == 1 && (Game1.getMouseX() > response.bounds.X && Game1.getMouseX() < response.bounds.X + response.bounds.Width) && (Game1.getMouseY() > response.bounds.Y && Game1.getMouseY() < response.bounds.Y + response.bounds.Height))
-                            {
-                                monitor.Log("No");
-                                ranOnce = true;
-                            }
-                        }
-                    }
-                }
-                catch (ArgumentOutOfRangeException) { }
-            }
-            */
-            if(Game1.player.CurrentEmoteIndex.Equals(24) && !ranOnce)
-            {                
-                bedTime = Game1.timeOfDay;
-                monitor.Log("Your bed time was " + bedTime,LogLevel.Info);
-                SetBonusPrice();
-                ranOnce = true;
+                Game1.player.professions.Remove(77);
             }
         }
         /*
@@ -304,6 +278,12 @@ namespace Sauvignon_in_Stardew
          */
         public void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e)
         {
+            if(e.NewMenu is DialogueBox box && box.getCurrentString() == sleepBox)
+            {
+                bedTime = Game1.timeOfDay;
+                SetBonusPrice();
+            }
+
             //monitor.Log($"Current menu type is " + e.NewMenu);            
             if (this.DistillerProfessionActive)
             {
@@ -394,7 +374,7 @@ namespace Sauvignon_in_Stardew
         /*
         * ADD AND REMOVE ARCHWAY
         * Change width of building and add/remove invisible tiles
-        */ 
+        */
         public void AddArch(Building building)
         {
             building.tilesWide.Value = 8;
@@ -501,17 +481,10 @@ namespace Sauvignon_in_Stardew
 
         public void SaveEvents_BeforeSave(object sender, EventArgs e)
         {
-            //Add Artisan Profession, if player is level 10 farming and has no profession, remove Distiller
+            //Add Artisan Profession
             if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
             {
-                if ( Game1.player.FarmingLevel > 9 && !( Game1.player.professions.Contains(1) ) )
-                {
-                    Game1.player.professions.Remove(77);
-                }
-                else
-                {
-                    Game1.player.professions.Add(4);
-                }                
+                Game1.player.professions.Add(4);               
             }            
             SetItemCategory(-26);
 
@@ -578,8 +551,6 @@ namespace Sauvignon_in_Stardew
                         if (o.Name.Equals("Keg"))
                         {
                             o.MinutesUntilReady -= 3;
-
-                            o.MinutesUntilReady = 0;
                         }
                     }
             }
@@ -643,23 +614,20 @@ namespace Sauvignon_in_Stardew
             return (item.ParentSheetIndex == 348 || item.ParentSheetIndex == 303 || item.ParentSheetIndex == 346 || item.ParentSheetIndex == 459);
         }
 
+        public bool IsDistiller()
+        {
+            return (this.DistillerProfessionActive && Game1.player.professions.Contains(77));
+        }
+
         public void SetBonusPrice()
         {
-            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
-            {
-                sellBonus = true;
-            }
-            else
-            {
-                sellBonus = false;
-            }
-
             foreach (Item item in Game1.getFarm().shippingBin)
             {
-                if ( sellBonus && item != null && item is SObject booze && IsAlcohol(item) )
+                if ( IsDistiller() && item != null && item is SObject booze && IsAlcohol(item) && booze.getHealth() != booze.Price )
                 {
-                    booze.Price = (int)(Math.Ceiling((float)booze.Price * 1.4));
-                    monitor.Log(booze.Name + " price is " + booze.Price);
+                    booze.Price = (int)(Math.Ceiling((float)booze.Price * 1.4));                    
+                    booze.setHealth(booze.Price);
+                    //monitor.Log(booze.Name + " price is " + booze.Price+" and health is "+booze.getHealth());
                 }
             }
         }
