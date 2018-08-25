@@ -1,0 +1,18 @@
+{
+	"professionTitle_Distiller" : "Destilador",
+	"professionTitle_Artisan" : "Artesão",
+	"professionTitle_Agriculturist" : "Agricultor",
+	"professionMenuDescription_Distiller" : "Álcool (cerveja, vinho, etc.) vale 40% a mais.",
+	"professionMenuDescription_Artisan" : "Bens artesanais (queijo, óleo de trufas, pano, etc.) valem 40% a mais.",
+	"professionMenuDescription_Agriculturist" : "Todas as culturas crescem 10% mais rapidamente.",
+	"menuExtraInfo_Can" : "+1 Proficiência em Lata de Regador",
+	"menuExtraInfo_Hoe" : "+1 Proficiência em enxada",
+	"menuTitle" : "Agricultura de nível 10",
+	"menuText" : "Escolha uma profissão:",
+	"professionHoverDescription" : "Álcool vale 40% a mais.",
+	"wineryName" : "Adega",
+	"wineryDescription" : "Barril e Barris dentro do trabalho 30% mais rápido e tempo de exibição restante."
+	"minutes" : " minutos restantes.",
+	"days" : " Dias restantes.",
+	"categoryName" : "Ofício destilado"
+}
