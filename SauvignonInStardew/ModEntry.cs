@@ -60,6 +60,8 @@ namespace Sauvignon_in_Stardew
 
         public string sleepBox;
         public bool ranOnce = false;
+
+        public bool spaceCore;
         /*
          * END FIELDS
          * 
@@ -127,6 +129,8 @@ namespace Sauvignon_in_Stardew
              * End of Events for save and loading
              * 
              */
+
+            spaceCore = helper.ModRegistry.IsLoaded("spacechase0.SpaceCore");
 
 
             /*
@@ -240,9 +244,10 @@ namespace Sauvignon_in_Stardew
                 List<IClickableMenu> pages = helper.Reflection.GetField<List<IClickableMenu>>(menu, "pages").GetValue();
                 foreach (IClickableMenu page in pages)
                 {
-                    if (page is SkillsPage skillsPage)
+                    if ( page is SkillsPage || page.GetType().FullName == "SpaceCore.Interface.NewSkillsPage" )
                     {
-                        foreach (ClickableTextureComponent skillBar in skillsPage.skillBars)
+                        List<ClickableTextureComponent> skillBars = helper.Reflection.GetField<List<ClickableTextureComponent>>(page, "skillBars").GetValue();
+                        foreach (ClickableTextureComponent skillBar in skillBars)
                         {
                             if (this.DistillerProfessionActive && skillBar.containsPoint(Game1.getMouseX(), Game1.getMouseY()) && skillBar.myID == 200)
                             {
@@ -256,6 +261,11 @@ namespace Sauvignon_in_Stardew
                                 Game1.spriteBatch.Draw(distillerIcon, new Vector2((float)(skillBar.bounds.X - 8), (float)(skillBar.bounds.Y - 32 + 16)), new Rectangle(0, 0, 16, 16), Color.White, 0.0f, Vector2.Zero, 4f, SpriteEffects.None, 1f);
                                 //box
                                 IClickableMenu.drawHoverText(Game1.spriteBatch, textDescription, Game1.smallFont, 0, 0, -1, textTitle.Length > 0 ? textTitle : (string)null, -1, (string[])null, (Item)null, 0, -1, -1, -1, -1, 1f, (CraftingRecipe)null);
+
+                                if (!Game1.options.hardwareCursor)
+                                {
+                                    Game1.spriteBatch.Draw(Game1.mouseCursors, new Vector2(Game1.getMouseX(), Game1.getMouseY()), Game1.getSourceRectForStandardTileSheet(Game1.mouseCursors, Game1.options.SnappyMenus ? 44 : 0 , 16, 16), Color.White * Game1.mouseCursorTransparency, 0.0f, Vector2.Zero, Game1.pixelZoom + Game1.dialogueButtonScale / 150f, SpriteEffects.None, 1f);
+                                }
                             }
                         }
                     }
@@ -458,7 +468,7 @@ namespace Sauvignon_in_Stardew
         public void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
         {            
             //Remove Artisan Profession if the have selected Distiller Profession
-            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
+            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(5))
             {
                 Game1.player.professions.Remove(4);
             }            
@@ -482,7 +492,7 @@ namespace Sauvignon_in_Stardew
         public void SaveEvents_BeforeSave(object sender, EventArgs e)
         {
             //Add Artisan Profession
-            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77))
+            if (this.DistillerProfessionActive && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(5))
             {
                 Game1.player.professions.Add(4);               
             }            
@@ -568,6 +578,11 @@ namespace Sauvignon_in_Stardew
          */
         public void TimeEvents_AfterDayStarted(object sender, EventArgs e)
         {
+            if( this.DistillerProfessionActive && !Game1.player.professions.Contains(77) && ( Game1.player.professions.Contains(4) && Game1.player.professions.Contains(5) ))
+            {
+                Game1.player.professions.Add(77);
+            }
+
             ranOnce = false;
 
             if (this.DistillerProfessionActive)
@@ -978,7 +993,7 @@ namespace Sauvignon_in_Stardew
                     return false;
                 }
 
-                if (__instance.Type == null && __instance.Type.Equals((object)"Arch"))
+                if (__instance.Type != null && __instance.Type.Equals((object)"Arch"))
                 {
                     __result = new Color(110, 0, 90);
                     return false;
