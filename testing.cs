@@ -5,6 +5,8 @@ public readonly Vector2[] bigKegsOutput = new Vector2[] { new Vector2(20,6), new
 
 //Inside Entry Method
 InputEvents.ButtonPressed += InputEvents_ButtonPressed;
+MenuEvents.MenuClosed += MenuEvents_MenuClosed;
+TimeEvents.TimeOfDayChanged += TimeEvents_TimeOfDayChanged;
 
 //Other Methods Inside Class
 public bool IsKegable(Item _item)
@@ -56,12 +58,12 @@ private void InputEvents_ButtonPressed(object sender, EventArgsInput e)
 
             if ( !_winery.Objects.ContainsKey( _chestLocation ) )
             {
-                Chest _newChest = new Chest(true){TileLocation = _chestLocation};
+                Chest _newChest = new Chest(true){TileLocation = _chestLocation, Name = "|ignore| input chest for big ol kego"};
                 _winery.Objects.Add(_chestLocation, _newChest);
             }
             if ( !_winery.Objects.ContainsKey(_outputChestLocation) )
             {
-                Chest _newChest = new Chest(true) { TileLocation = _outputChestLocation };
+                Chest _newChest = new Chest(true) { TileLocation = _outputChestLocation, Name = "|ignore| output chest for big ol kego" };
                 _winery.Objects.Add(_outputChestLocation, _newChest);
             }
             if( Game1.player.CurrentItem != null && IsKegable(Game1.player.CurrentItem) )
@@ -163,12 +165,7 @@ private void InputEvents_ButtonPressed(object sender, EventArgsInput e)
         if( e.IsActionButton)
         {
             GameLocation _winery = Game1.currentLocation;
-            Vector2 _chestLocation = new Vector2(e.Cursor.GrabTile.X, e.Cursor.GrabTile.Y - 24);
-            if (!_winery.Objects.ContainsKey(_chestLocation))
-            {
-                Chest _newChest = new Chest(true) { TileLocation = _chestLocation };
-                _winery.Objects.Add(_chestLocation, _newChest);
-            }
+            Vector2 _chestLocation = new Vector2(e.Cursor.GrabTile.X, e.Cursor.GrabTile.Y - 27);
             Chest _chest = (Chest)_winery.Objects[_chestLocation];
             Game1.activeClickableMenu = new ItemGrabMenu(
                inventory: _chest.items,
@@ -186,3 +183,77 @@ private void InputEvents_ButtonPressed(object sender, EventArgsInput e)
     }
 }
 
+private void MenuEvents_MenuClosed(object sender, EventArgsClickableMenuClosed e)
+{
+    if(e.PriorMenu is ItemGrabMenu && Game1.currentLocation != null && Game1.currentLocation.mapPath.Value == "Maps\\Winery")
+    {
+        GameLocation _winery = Game1.currentLocation;
+        Layer _layerBuildings = _winery.map.GetLayer("Buildings");
+        TileSheet _tilesheet = _winery.map.GetTileSheet("bucket_anim");
+        foreach(SObject o in _winery.Objects.Values)
+        {
+            if(o is Chest _chest && _chest.Name.Equals("|ignore| output chest for big ol kego") && _chest.items.Count <= 0)
+            {
+                _layerBuildings.Tiles[(int)_chest.TileLocation.X, (int)_chest.TileLocation.Y + 27] = new StaticTile(_layerBuildings, _tilesheet, BlendMode.Alpha, 21);
+            }
+        }
+    }
+}
+
+public bool IsWineJuiceOrCoffee(Item _item)
+{
+    return (_item.ParentSheetIndex == 395 || _item.ParentSheetIndex == 348 || _item.ParentSheetIndex == 350);
+}
+
+public bool IsBeerBeerOrBeer(Item _item)
+{
+    return (_item.ParentSheetIndex == 346 || _item.ParentSheetIndex == 303 || _item.ParentSheetIndex == 459);
+}
+
+public void TimeEvents_TimeOfDayChanged(object sender, EventArgsIntChanged e)
+{
+    foreach (Building b in Game1.getFarm().buildings)
+    {
+        if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery")) {
+            GameLocation _winery = b.indoors.Value;
+            Layer _layerBuildings = _winery.map.GetLayer("Buildings");
+            Layer _layerFront = _winery.map.GetLayer("Front");
+            TileSheet _tilesheet = _winery.map.GetTileSheet("bucket_anim");
+            foreach (SObject o in b.indoors.Value.Objects.Values)
+            {
+                if (o is Chest _chest && _chest.Name.Equals("|ignore| input chest for big ol kego"))
+                {
+                    foreach (SObject _item in _chest.items)
+                    {
+                        if (_item.getHealth() > 0)
+                        {
+                            _item.setHealth(_item.getHealth() - 10);
+                        }
+                        else if (_item.getHealth() <= 0)
+                        {
+                            Chest _outputChest = ((Chest)b.indoors.Value.Objects[new Vector2(_chest.TileLocation.X, _chest.TileLocation.Y + 10)]);
+                            Item _remainder = _outputChest.addItem(_item);
+                            if (_remainder == null)
+                            {
+                                _chest.items.Remove(_item);
+                            }
+                            if (IsWineJuiceOrCoffee(_item))
+                            {
+                                SetKegAnimation(_layerBuildings, new Vector2(_chest.TileLocation.X, _chest.TileLocation.Y + 37), _tilesheet, new int[] { 22, 23, 24 }, 250);
+                            }
+                            else
+                            {
+                                SetKegAnimation(_layerBuildings, new Vector2(_chest.TileLocation.X, _chest.TileLocation.Y + 37), _tilesheet, new int[] { 25, 26, 27 }, 250);
+                            }
+                        }
+                    }
+                    if (_chest.items.Count <= 0)
+                    {
+                        _layerBuildings.Tiles[(int)_chest.TileLocation.X, (int)_chest.TileLocation.Y + 36] = new StaticTile(_layerBuildings, _tilesheet, BlendMode.Alpha, 0);
+                        _layerFront.Tiles[(int)_chest.TileLocation.X, (int)_chest.TileLocation.Y + 36] = new StaticTile(_layerFront, _tilesheet, BlendMode.Alpha, 14);
+                    }
+                }
+            }
+        }
+    }
+}
