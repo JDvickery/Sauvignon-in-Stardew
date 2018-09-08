@@ -25,7 +25,7 @@ public static void SetBluePrintField(BluePrint bluePrint, string field, object v
 
 if (e.NewMenu is CarpenterMenu)
 {
-  if (!IsMagical(e.NewMenu) && !HasBluePrint(e.NewMenu, "Winery2"))
+  if (!Game1.getFarm().buildings.Any(building => building.buildingType.Value == "Winery") && !IsMagical(e.NewMenu) && !HasBluePrint(e.NewMenu, "Winery2"))
     {
         BluePrint kegRoomBluePrint = new BluePrint("Slime Hutch")
         {
@@ -39,8 +39,8 @@ if (e.NewMenu is CarpenterMenu)
         };
         kegRoomBluePrint.itemsRequired.Clear();
         kegRoomBluePrint.itemsRequired.Add(709, 200);//200
-        kegRoomBluePrint.itemsRequired.Add(330, 100);//100
-        kegRoomBluePrint.itemsRequired.Add(390, 100);//100
+        kegRoomBluePrint.itemsRequired.Add(335, 150);//150
+        kegRoomBluePrint.itemsRequired.Add(388, 500);//500
 
         SetBluePrintField(kegRoomBluePrint, "textureName", "Buildings\\Winery2");
         SetBluePrintField(kegRoomBluePrint, "texture", Game1.content.Load<Texture2D>(kegRoomBluePrint.textureName));
