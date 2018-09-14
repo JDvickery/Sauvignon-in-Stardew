@@ -506,7 +506,7 @@ namespace Sauvignon_in_Stardew
                 }
             }           
 
-            if (e.NewMenu is CarpenterMenu)
+            if (e.NewMenu.GetType().FullName.Contains("CarpenterMenu"))
             {
                 //Sets current Winery buildings to 11 width to stop overlay and removes invisible tiles for building moving 
                 foreach (Building building in Game1.getFarm().buildings)
@@ -537,7 +537,7 @@ namespace Sauvignon_in_Stardew
                     GetBluePrints(e.NewMenu).Add(wineryBluePrint);
                 }
 
-                if (Game1.getFarm().buildings.Any(building => building.buildingType.Value == "Winery") && !IsMagical(e.NewMenu) && !HasBluePrint(e.NewMenu, "Winery2"))
+                if (Game1.getFarm().isBuildingConstructed("Winery") && !IsMagical(e.NewMenu) && !HasBluePrint(e.NewMenu, "Winery2"))
                 {
                     BluePrint kegRoomBluePrint = new BluePrint("Slime Hutch")
                     {
