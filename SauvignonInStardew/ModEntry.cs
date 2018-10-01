@@ -486,9 +486,7 @@ namespace SauvignonInStardew
                 foreach (Building building in Game1.getFarm().buildings)
                 {
                     if (building.indoors.Value != null && building.buildingType.Value.Equals("Winery"))
-                    {
-                        this.RemoveArch(building);
-                    }
+                        this.SetArch(building, false);
                 }
                 if (!this.IsMagical(e.NewMenu) && !this.HasBluePrint(e.NewMenu, "Winery"))
                 {
@@ -565,9 +563,7 @@ namespace SauvignonInStardew
                 foreach (Building building in Game1.getFarm().buildings)
                 {
                     if (building.indoors.Value != null && building.buildingType.Value.Equals("Winery"))
-                    {
-                        this.AddArch(building);
-                    }
+                        this.SetArch(building, true);
                 }
             }
 
@@ -596,13 +592,14 @@ namespace SauvignonInStardew
         * ADD AND REMOVE ARCHWAY
         * Change width of building and add/remove invisible tiles
         */
-        private void AddArch(Building building)
+        private void SetArch(Building building, bool enable)
         {
             // collect info
+            Farm farm = Game1.getFarm();
             Point minOffset = new Point(9, 0);
             Point maxOffset = new Point(11, 6);
-            var layer = Game1.getFarm().map.GetLayer("Buildings");
-            var tilesheet = Game1.getFarm().map.TileSheets.FirstOrDefault(sheet => sheet.ImageSource != null && (sheet.ImageSource.Contains("outdoor") || sheet.ImageSource.Contains("Outdoor")));
+            var layer = farm.map.GetLayer("Buildings");
+            var tilesheet = farm.map.TileSheets.FirstOrDefault(sheet => sheet.ImageSource != null && (sheet.ImageSource.Contains("outdoor") || sheet.ImageSource.Contains("Outdoor")));
 
             // validate
             if ((building.tileX.Value + maxOffset.X) >= layer.LayerHeight || (building.tileY.Value + maxOffset.Y) >= layer.LayerHeight)
@@ -612,32 +609,25 @@ namespace SauvignonInStardew
             }
 
             // apply changes
-            building.tilesWide.Value = 8;
+            if (enable)
+                building.tilesWide.Value = 8;
             for (int x = building.tileX.Value + minOffset.X; x < building.tileX.Value + maxOffset.X; x++)
             {
                 for (int y = building.tileY.Value + maxOffset.Y; y < building.tileY.Value + maxOffset.Y; y++)
-                    layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, TileID);
-            }
-            if (building.daysOfConstructionLeft.Value > 0)
-                building.tilesWide.Value = 11;
-        }
-
-        private void RemoveArch(Building building)
-        {
-            building.tilesWide.Value = 11;
-            for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
-            {
-                for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
                 {
-                    Game1.getFarm().removeTile(x, y, "Buildings");
+                    if (enable)
+                        layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, TileID);
+                    else
+                        farm.removeTile(x, y, "Buildings");
                 }
             }
+            if (!enable || building.daysOfConstructionLeft.Value > 0)
+                building.tilesWide.Value = 11;
         }
         /*
         * END ADD AND REMOVE ARCHWAY
         * 
         */
-
 
 
 
@@ -651,14 +641,14 @@ namespace SauvignonInStardew
             {
                 if (building.indoors.Value != null && building.buildingType.Value == "Winery")
                 {
-                    this.AddArch(building);
+                    this.SetArch(building, true);
                 }
             }
             foreach (Building building in e.Removed)
             {
                 if (building.indoors.Value != null && building.buildingType.Value == "Winery")
                 {
-                    this.RemoveArch(building);
+                    this.SetArch(building, false);
                 }
             }
         }
@@ -734,7 +724,7 @@ namespace SauvignonInStardew
                     b.buildingType.Value = "Slime Hutch";
                     b.indoors.Value.mapPath.Value = "Maps\\SlimeHutch";
                     b.indoors.Value.updateMap();
-                    this.RemoveArch(b);
+                    this.SetArch(b, false);
                 }
             }
             this.Helper.Data.WriteSaveData("data", this.SaveData);
@@ -785,7 +775,7 @@ namespace SauvignonInStardew
                         b.buildingType.Value = "Winery";
                         b.indoors.Value.mapPath.Value = "Maps\\Winery";
                         b.indoors.Value.updateMap();
-                        this.AddArch(b);
+                        this.SetArch(b, true);
                     }
                 }
             }
