@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Harmony;
@@ -25,14 +26,13 @@ namespace SauvignonInStardew
         ** Fields
         *********/
         private ModConfig Config;
+        private SaveData SaveData;
 
         private Texture2D WineryOutdoorTexture;
         private Map WineryIndoorMap;
         private Map KegRoomMap;
 
         private const int TileID = 131;
-
-        private List<KeyValuePair<int, int>> WineryCoords;
 
         private string CurrentSeason;
 
@@ -99,8 +99,8 @@ namespace SauvignonInStardew
 
             //Events for save and loading
             SaveEvents.BeforeSave += this.SaveEvents_BeforeSave;
-            SaveEvents.AfterSave += this.SaveEvents_AfterSaveLoad;
-            SaveEvents.AfterLoad += this.SaveEvents_AfterSaveLoad;
+            SaveEvents.AfterSave += this.SaveEvents_AfterSave;
+            SaveEvents.AfterLoad += this.SaveEvents_AfterLoad;
             SaveEvents.AfterLoad += this.DisplayDistillerInfo;
 
             /*
@@ -676,28 +676,22 @@ namespace SauvignonInStardew
          * and reloading the wineries, changing back the category, and removing the Artisan profession
          * if they have the Distiller profession.
          */
-        private void SaveEvents_AfterSaveLoad(object sender, EventArgs e)
+        private void SaveEvents_AfterSave(object sender, EventArgs e)
         {
-            //Remove Artisan Profession if the have selected Distiller Profession
-            if (this.Config.DistillerProfessionBool && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(5))
-            {
-                Game1.player.professions.Remove(4);
-            }
+            // delete legacy data file (migrated into save file at this point)
+            FileInfo legacyFile = new FileInfo(Path.Combine($"{Constants.CurrentSavePath}", "Winery_Coords.json"));
+            if (legacyFile.Exists)
+                legacyFile.Delete();
 
-            this.WineryCoords = this.Helper.ReadJsonFile<List<KeyValuePair<int, int>>>($"{Constants.CurrentSavePath}/Winery_Coords.json") ?? new List<KeyValuePair<int, int>>();
-            foreach (Building b in Game1.getFarm().buildings)
-            {
-                foreach (var pair in this.WineryCoords)
-                {
-                    if (b.tileX.Value == pair.Key && b.tileY.Value == pair.Value && b.buildingType.Value.Equals("Slime Hutch"))
-                    {
-                        b.buildingType.Value = "Winery";
-                        b.indoors.Value.mapPath.Value = "Maps\\Winery";
-                        b.indoors.Value.updateMap();
-                        this.AddArch(b);
-                    }
-                }
-            }
+            // restore data
+            this.RestoreStashedData(this.SaveData);
+        }
+
+        private void SaveEvents_AfterLoad(object sender, EventArgs e)
+        {
+            // restore data
+            this.SaveData = this.ReadSaveData();
+            this.RestoreStashedData(this.SaveData);
         }
 
         private void SaveEvents_BeforeSave(object sender, EventArgs e)
@@ -731,19 +725,70 @@ namespace SauvignonInStardew
             }
 
             //save coordinates to json file and replace with slime hutch
-            this.WineryCoords.Clear();
+            this.SaveData.WineryCoords.Clear();
             foreach (Building b in Game1.getFarm().buildings)
             {
                 if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
                 {
-                    this.WineryCoords.Add(new KeyValuePair<int, int>(b.tileX.Value, b.tileY.Value));
+                    this.SaveData.WineryCoords.Add(new Point(b.tileX.Value, b.tileY.Value));
                     b.buildingType.Value = "Slime Hutch";
                     b.indoors.Value.mapPath.Value = "Maps\\SlimeHutch";
                     b.indoors.Value.updateMap();
                     this.RemoveArch(b);
                 }
             }
-            this.Helper.WriteJsonFile($"{Constants.CurrentSavePath}/Winery_Coords.json", this.WineryCoords);
+            this.Helper.Data.WriteSaveData("data", this.SaveData);
+        }
+
+        /// <summary>Read mod data stored in the save file.</summary>
+        private SaveData ReadSaveData()
+        {
+            // from save file
+            {
+                SaveData data = this.Helper.Data.ReadSaveData<SaveData>("data");
+                if (data != null)
+                    return data;
+            }
+
+            // from legacy JSON file
+            // Note: don't change to `this.Helper.Data.ReadJsonFile`, which doesn't allow absolute paths.
+            {
+                var data = this.Helper.ReadJsonFile<List<KeyValuePair<int, int>>>($"{Constants.CurrentSavePath}/Winery_Coords.json");
+                if (data != null)
+                {
+                    return new SaveData
+                    {
+                        WineryCoords = data.Select(p => new Point(p.Key, p.Value)).ToList()
+                    };
+                }
+            }
+
+            // new data
+            return new SaveData();
+        }
+
+        /// <summary>Restore game data based on the given save data.</summary>
+        /// <param name="data">The save data to restore.</param>
+        private void RestoreStashedData(SaveData data)
+        {
+            // remove Artisan Profession if they have selected Distiller Profession
+            if (this.Config.DistillerProfessionBool && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(5))
+                Game1.player.professions.Remove(4);
+
+            // load save data
+            foreach (Building b in Game1.getFarm().buildings)
+            {
+                foreach (var pair in data.WineryCoords)
+                {
+                    if (b.tileX.Value == pair.X && b.tileY.Value == pair.Y && b.buildingType.Value.Equals("Slime Hutch"))
+                    {
+                        b.buildingType.Value = "Winery";
+                        b.indoors.Value.mapPath.Value = "Maps\\Winery";
+                        b.indoors.Value.updateMap();
+                        this.AddArch(b);
+                    }
+                }
+            }
         }
         /*
          * END SAVE AND LOADING
