@@ -30,7 +30,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="2.1.0" />
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="2.2.0-beta-20180819" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -43,7 +43,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="0Harmony">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(GamePath)\0Harmony.dll</HintPath>
+      <HintPath>$(GamePath)\smapi-internal\0Harmony.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>
