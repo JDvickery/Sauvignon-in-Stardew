@@ -30,8 +30,6 @@ namespace SauvignonInStardew
         private Map WineryIndoorMap;
         private Map KegRoomMap;
 
-        private TileSheet TileSheet;
-        private Layer Layer;
         private const int TileID = 131;
 
         private List<KeyValuePair<int, int>> WineryCoords;
@@ -600,28 +598,28 @@ namespace SauvignonInStardew
         */
         private void AddArch(Building building)
         {
-            building.tilesWide.Value = 8;
-            this.Layer = Game1.getFarm().map.GetLayer("Buildings");
-            foreach (TileSheet sheet in Game1.getFarm().map.TileSheets)
+            // collect info
+            Point minOffset = new Point(9, 0);
+            Point maxOffset = new Point(11, 6);
+            var layer = Game1.getFarm().map.GetLayer("Buildings");
+            var tilesheet = Game1.getFarm().map.TileSheets.FirstOrDefault(sheet => sheet.ImageSource != null && (sheet.ImageSource.Contains("outdoor") || sheet.ImageSource.Contains("Outdoor")));
+
+            // validate
+            if ((building.tileX.Value + maxOffset.X) >= layer.LayerHeight || (building.tileY.Value + maxOffset.Y) >= layer.LayerHeight)
             {
-                if (sheet.ImageSource != null && (sheet.ImageSource.Contains("outdoor") || sheet.ImageSource.Contains("Outdoor")))
-                {
-                    this.TileSheet = sheet;
-                }
+                this.Monitor.Log($"Didn't apply map changes for winery at ({building.tileX.Value}, {building.tileY.Value}) because it's outside the map bounds.", LogLevel.Warn);
+                return;
             }
-            //tilesheet = Game1.getFarm().map.GetTileSheet("untitled tile sheet");
-            //tileID = 131;
-            for (int x = building.tileX.Value + 9; x < building.tileX.Value + 11; x++)
+
+            // apply changes
+            building.tilesWide.Value = 8;
+            for (int x = building.tileX.Value + minOffset.X; x < building.tileX.Value + maxOffset.X; x++)
             {
-                for (int y = building.tileY.Value; y < building.tileY.Value + 6; y++)
-                {
-                    this.Layer.Tiles[x, y] = new StaticTile(this.Layer, this.TileSheet, BlendMode.Alpha, TileID);
-                }
+                for (int y = building.tileY.Value + maxOffset.Y; y < building.tileY.Value + maxOffset.Y; y++)
+                    layer.Tiles[x, y] = new StaticTile(layer, tilesheet, BlendMode.Alpha, TileID);
             }
             if (building.daysOfConstructionLeft.Value > 0)
-            {
                 building.tilesWide.Value = 11;
-            }
         }
 
         private void RemoveArch(Building building)
