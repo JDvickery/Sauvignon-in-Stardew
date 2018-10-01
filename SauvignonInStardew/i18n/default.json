@@ -11,7 +11,7 @@
 	"menuText" : "Choose a profession:",
 	"professionHoverDescription" : "Alcohol worth 40% more.",
 	"wineryName" : "Winery",
-	"wineryDescription" : "Kegs and Casks inside work 30% faster and display time remaining."
+	"wineryDescription" : "Kegs and Casks inside work 30% faster and display time remaining.",
 	"minutes" : " minutes remaining.",
 	"days" : " days remaining.",
 	"categoryName" : "Distilled Craft",
