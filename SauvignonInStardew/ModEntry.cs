@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,6 +6,7 @@ using System.Reflection;
 using Harmony;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Newtonsoft.Json;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -741,9 +742,11 @@ namespace SauvignonInStardew
             }
 
             // from legacy JSON file
-            // Note: don't change to `this.Helper.Data.ReadJsonFile`, which doesn't allow absolute paths.
             {
-                var data = this.Helper.ReadJsonFile<List<KeyValuePair<int, int>>>($"{Constants.CurrentSavePath}/Winery_Coords.json");
+                FileInfo legacyFile = new FileInfo(Path.Combine($"{Constants.CurrentSavePath}", "Winery_Coords.json"));
+                var data = legacyFile.Exists
+                    ? JsonConvert.DeserializeObject<List<KeyValuePair<int, int>>>(File.ReadAllText(legacyFile.FullName))
+                    : null;
                 if (data != null)
                 {
                     return new SaveData
