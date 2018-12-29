@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -71,38 +71,33 @@ namespace SauvignonInStardew
             this.SleepBox = Game1.content.LoadString("Strings\\Locations:FarmHouse_Bed_GoToSleep");
 
             //Event for using big kegs
-            InputEvents.ButtonPressed += this.InputEvents_ButtonPressed;
+            helper.Events.Input.ButtonPressed += this.OnButtonPressed;
 
-            //Event for adding blueprint to carpenter menu
-            MenuEvents.MenuChanged += this.MenuEvents_MenuChanged;
+            //Event for adding blueprint to carpenter menu & preventing building overlays
+            helper.Events.Display.MenuChanged += this.OnMenuChanged;
 
             //Event for Keg Speed
-            TimeEvents.TimeOfDayChanged += this.TimeEvents_TimeOfDayChanged;
+            helper.Events.GameLoop.TimeChanged += this.OnTimeChanged;
 
             //Event for Cask Speed
-            TimeEvents.AfterDayStarted += this.TimeEvents_AfterDayStarted;
+            helper.Events.GameLoop.DayStarted += this.OnDayStarted;
 
             //Event for showing time remaining on hover
-            GraphicsEvents.OnPostRenderEvent += this.GraphicsEvents_OnPostRenderEvent;
-            //GraphicsEvents.OnPreRenderEvent += GraphicsEvents_OnPreRenderEvent;
+            helper.Events.Display.Rendered += this.OnRendered;
 
             //Events for editing Winery width
-            LocationEvents.BuildingsChanged += this.LocationEvents_BuildingsChanged;
-
-            //Event for proventing buidling overlays
-            MenuEvents.MenuClosed += this.MenuEvents_MenuClosed;
+            helper.Events.World.BuildingListChanged += this.OnBuildingListChanged;
 
             //Event for fixing skills menu
-            GraphicsEvents.OnPostRenderGuiEvent += this.GraphicsEvents_OnPostRenderGuiEvent;
+            helper.Events.Display.RenderedActiveMenu += this.OnRenderedActiveMenu;
 
             //Event for Bonus Price and Bed Time if dead or faint
-            GameEvents.UpdateTick += this.GameEvents_UpdateTick;
+            helper.Events.GameLoop.UpdateTicked += this.OnUpdateTicked;
 
             //Events for save and loading
-            SaveEvents.BeforeSave += this.SaveEvents_BeforeSave;
-            SaveEvents.AfterSave += this.SaveEvents_AfterSave;
-            SaveEvents.AfterLoad += this.SaveEvents_AfterLoad;
-            SaveEvents.AfterLoad += this.DisplayDistillerInfo;
+            helper.Events.GameLoop.Saving += this.OnSaving;
+            helper.Events.GameLoop.Saved += this.OnSaved;
+            helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
 
             /*
              * HARMONY PATCHING
@@ -211,11 +206,14 @@ namespace SauvignonInStardew
             return output;
         }
 
-        private void InputEvents_ButtonPressed(object sender, EventArgsInput e)
+        /// <summary>Raised after the player presses a button on the keyboard, controller, or mouse.</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
         {
-            if (Game1.currentLocation != null && Game1.currentLocation.mapPath.Value == "Maps\\Winery" && this.IsBigKegInput(e.Cursor.GrabTile))
+            if (Game1.currentLocation?.mapPath.Value == "Maps\\Winery" && this.IsBigKegInput(e.Cursor.GrabTile))
             {
-                if (e.IsActionButton)
+                if (e.Button.IsActionButton())
                 {
                     GameLocation winery = Game1.currentLocation;
                     Vector2 chestLocation = new Vector2(e.Cursor.GrabTile.X, e.Cursor.GrabTile.Y - 34);
@@ -330,9 +328,9 @@ namespace SauvignonInStardew
                     }
                 }
             }
-            else if (Game1.currentLocation != null && Game1.currentLocation.mapPath.Value == "Maps\\Winery" && this.IsBigKegOutput(e.Cursor.GrabTile))
+            else if (Game1.currentLocation?.mapPath.Value == "Maps\\Winery" && this.IsBigKegOutput(e.Cursor.GrabTile))
             {
-                if (e.IsActionButton)
+                if (e.Button.IsActionButton())
                 {
                     GameLocation winery = Game1.currentLocation;
                     Vector2 chestLocation = new Vector2(e.Cursor.GrabTile.X, e.Cursor.GrabTile.Y - 27);
@@ -363,7 +361,10 @@ namespace SauvignonInStardew
          * Set ranOnce back to false at start of day
          * Remove Distiller profession if player is level 10 and does not have tiller
          */
-        private void GameEvents_UpdateTick(object sender, EventArgs e)
+        /// <summary>Raised after the game state is updated (≈60 times per second).</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnUpdateTicked(object sender, UpdateTickedEventArgs e)
         {
             if ((Game1.player.health <= 0 || Game1.player.stamina <= 0) && !this.RanOnce)
             {
@@ -385,7 +386,7 @@ namespace SauvignonInStardew
         /*
         * Log Distiller info
         */
-        private void DisplayDistillerInfo(object sender, EventArgs e)
+        private void DisplayDistillerInfo()
         {
             if (this.Config.DistillerProfessionBool)
             {
@@ -410,7 +411,10 @@ namespace SauvignonInStardew
         * DRAW TO SKILLS PAGE
         * draw icon and Distiller profession info in Skills Page
         */
-        private void GraphicsEvents_OnPostRenderGuiEvent(object sender, EventArgs e)
+        /// <summary>When a menu is open (<see cref="Game1.activeClickableMenu"/> isn't null), raised after that menu is drawn to the sprite batch but before it's rendered to the screen.</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnRenderedActiveMenu(object sender, RenderedActiveMenuEventArgs e)
         {
             if (Game1.activeClickableMenu is GameMenu menu && menu.currentTab == 1 && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(4))
             {
@@ -452,15 +456,48 @@ namespace SauvignonInStardew
 
 
 
-        /*
-         * ADD WINERY TO CARPENTER MENU
-         * 
-         * CHANGE FARMING LEVEL UP 10 MENU TO DISTILLER MENU
-         * 
-         * SAVE BED TIME FOR KEG BONUS OVERNIGHT
-         */
-        private void MenuEvents_MenuChanged(object sender, EventArgsClickableMenuChanged e)
+            /*
+             * RESTORE WINERY DATA AFTER MENU EXITS
+             * 
+             * ADD WINERY TO CARPENTER MENU
+             * 
+             * CHANGE FARMING LEVEL UP 10 MENU TO DISTILLER MENU
+             * 
+             * SAVE BED TIME FOR KEG BONUS OVERNIGHT
+             */
+        /// <summary>Raised after a game menu is opened, closed, or replaced.</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnMenuChanged(object sender, MenuChangedEventArgs e)
         {
+            //sets back Winery widths to 8 for Archway walkthrough and add back invisible tiles
+            if (e.NewMenu == null)
+            {
+                if (e.OldMenu is CarpenterMenu)
+                {
+                    foreach (Building building in Game1.getFarm().buildings)
+                    {
+                        if (building.indoors.Value != null && building.buildingType.Value.Equals("Winery"))
+                            this.SetArch(building, true);
+                    }
+                }
+
+                if (e.OldMenu is ItemGrabMenu && Game1.currentLocation != null && Game1.currentLocation.mapPath.Value == "Maps\\Winery2")
+                {
+                    GameLocation winery = Game1.currentLocation;
+                    Layer layerBuildings = winery.map.GetLayer("Buildings");
+                    TileSheet tilesheet = winery.map.GetTileSheet("bucket_anim");
+                    foreach (SObject o in winery.Objects.Values)
+                    {
+                        if (o is Chest chest && chest.Name.Equals("|ignore| output chest for big ol kego") && chest.items.Count <= 0)
+                        {
+                            layerBuildings.Tiles[(int)chest.TileLocation.X, (int)chest.TileLocation.Y + 27] = new StaticTile(layerBuildings, tilesheet, BlendMode.Alpha, 21);
+                        }
+                    }
+                }
+                return;
+            }
+
             if (e.NewMenu is DialogueBox box && box.getCurrentString() == this.SleepBox)
             {
                 this.BedTime = Game1.timeOfDay;
@@ -555,33 +592,6 @@ namespace SauvignonInStardew
             this.Helper.Reflection.GetField<object>(bluePrint, field).SetValue(value);
             //typeof(BluePrint).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).SetValue(bluePrint, value);
         }
-
-        //sets back Winery widths to 8 for Archway walkthrough and add back invisible tiles
-        private void MenuEvents_MenuClosed(object sender, EventArgsClickableMenuClosed e)
-        {
-            if (e.PriorMenu is CarpenterMenu)
-            {
-                foreach (Building building in Game1.getFarm().buildings)
-                {
-                    if (building.indoors.Value != null && building.buildingType.Value.Equals("Winery"))
-                        this.SetArch(building, true);
-                }
-            }
-
-            if (e.PriorMenu is ItemGrabMenu && Game1.currentLocation != null && Game1.currentLocation.mapPath.Value == "Maps\\Winery2")
-            {
-                GameLocation winery = Game1.currentLocation;
-                Layer layerBuildings = winery.map.GetLayer("Buildings");
-                TileSheet tilesheet = winery.map.GetTileSheet("bucket_anim");
-                foreach (SObject o in winery.Objects.Values)
-                {
-                    if (o is Chest chest && chest.Name.Equals("|ignore| output chest for big ol kego") && chest.items.Count <= 0)
-                    {
-                        layerBuildings.Tiles[(int)chest.TileLocation.X, (int)chest.TileLocation.Y + 27] = new StaticTile(layerBuildings, tilesheet, BlendMode.Alpha, 21);
-                    }
-                }
-            }
-        }
         /*
          * END OF ADDING WINERY TO CARPENTER MENU
          * 
@@ -636,7 +646,10 @@ namespace SauvignonInStardew
          * EDIT WINERY WIDTH
          * calls AddArch or RemoveArch depending on what the player did.
          */
-        private void LocationEvents_BuildingsChanged(object sender, EventArgsLocationBuildingsChanged e)
+        /// <summary>Raised after buildings are added or removed in a location.</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnBuildingListChanged(object sender, BuildingListChangedEventArgs e)
         {
             foreach (Building building in e.Added)
             {
@@ -667,7 +680,10 @@ namespace SauvignonInStardew
          * and reloading the wineries, changing back the category, and removing the Artisan profession
          * if they have the Distiller profession.
          */
-        private void SaveEvents_AfterSave(object sender, EventArgs e)
+        /// <summary>Raised after the game finishes writing data to the save file (except the initial save creation).</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnSaved(object sender, SavedEventArgs e)
         {
             // delete legacy data file (migrated into save file at this point)
             FileInfo legacyFile = new FileInfo(Path.Combine($"{Constants.CurrentSavePath}", "Winery_Coords.json"));
@@ -678,14 +694,23 @@ namespace SauvignonInStardew
             this.RestoreStashedData(this.SaveData);
         }
 
-        private void SaveEvents_AfterLoad(object sender, EventArgs e)
+        /// <summary>Raised after the player loads a save slot and the world is initialised.</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
         {
             // restore data
             this.SaveData = this.ReadSaveData();
             this.RestoreStashedData(this.SaveData);
+
+            // show distiller info
+            this.DisplayDistillerInfo();
         }
 
-        private void SaveEvents_BeforeSave(object sender, EventArgs e)
+        /// <summary>Raised before the game begins writes data to the save file (except the initial save creation).</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnSaving(object sender, SavingEventArgs e)
         {
             //Add Artisan Profession
             if (this.Config.DistillerProfessionBool && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(5))
@@ -795,7 +820,10 @@ namespace SauvignonInStardew
          * SPEED UP KEG INSIDE WINERY
          * 
          */
-        private void TimeEvents_TimeOfDayChanged(object sender, EventArgsIntChanged e)
+        /// <summary>Raised after the in-game clock time changes.</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnTimeChanged(object sender, TimeChangedEventArgs e)
         {
             if (this.Config.DistillerProfessionBool)
             {
@@ -858,7 +886,10 @@ namespace SauvignonInStardew
          * SPEED UP CASK INSIDE WINERY
          * Also set the item category to Distilled Craft & change seasonal texture
          */
-        private void TimeEvents_AfterDayStarted(object sender, EventArgs e)
+        /// <summary>Raised after the game begins a new day (including when the player loads a save).</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnDayStarted(object sender, DayStartedEventArgs e)
         {
             if (this.Config.DistillerProfessionBool && !Game1.player.professions.Contains(77) && (Game1.player.professions.Contains(4) && Game1.player.professions.Contains(5)))
             {
@@ -1039,7 +1070,10 @@ namespace SauvignonInStardew
          * TIME REMAINING ON HOVER INSIDE WINERY
          * 
          */
-        private void GraphicsEvents_OnPostRenderEvent(object sender, EventArgs e)
+        /// <summary>Raised after the game draws to the sprite patch in a draw tick, just before the final sprite batch is rendered to the screen.</summary>
+        /// <param name="sender">The event sender.</param>
+        /// <param name="e">The event arguments.</param>
+        private void OnRendered(object sender, RenderedEventArgs e)
         {
             if (Game1.hasLoadedGame)
             {
