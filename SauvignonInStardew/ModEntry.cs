@@ -46,6 +46,9 @@ namespace SauvignonInStardew
         private string SleepBox;
         private bool RanOnce;
 
+        /// <summary>Whether custom mod data was just restored.</summary>
+        private bool JustRestoredWineries;
+
         private readonly Vector2[] BigKegsInput = new[] { new Vector2(20, 3), new Vector2(23, 3), new Vector2(26, 3), new Vector2(29, 3), new Vector2(32, 3) };
         private readonly Vector2[] BigKegsOutput = new[] { new Vector2(20, 6), new Vector2(23, 6), new Vector2(26, 6), new Vector2(29, 6), new Vector2(32, 6) };
 
@@ -367,6 +370,21 @@ namespace SauvignonInStardew
         /// <param name="e">The event arguments.</param>
         private void OnUpdateTicked(object sender, UpdateTickedEventArgs e)
         {
+            // fix winery buildings
+            // This needs to happen on the next update tick, so we can override the game setting the exit warp target to the map file's default.
+            if (Context.IsWorldReady && this.JustRestoredWineries)
+            {
+                this.JustRestoredWineries = false;
+
+                foreach (Building b in Game1.getFarm().buildings.Where(this.IsWinery))
+                {
+                    b.indoors.Value.mapPath.Value = "Maps\\Winery";
+                    b.indoors.Value.updateMap();
+                    b.updateInteriorWarps();
+                    this.Helper.Reflection.GetField<NetArray<bool, NetBool>>(b.indoors.Value, "waterSpots").GetValue().Clear(); // avoid lag due to the game trying to set a non-existent tile's property in SlimeHutch::UpdateWhenCurrentLocation
+                    this.SetArch(b, true);
+                }
+            }
             if ((Game1.player.health <= 0 || Game1.player.stamina <= 0) && !this.RanOnce)
             {
                 this.BedTime = Game1.timeOfDay;
@@ -652,20 +670,10 @@ namespace SauvignonInStardew
         /// <param name="e">The event arguments.</param>
         private void OnBuildingListChanged(object sender, BuildingListChangedEventArgs e)
         {
-            foreach (Building building in e.Added)
-            {
-                if (building.indoors.Value != null && building.buildingType.Value == "Winery")
-                {
-                    this.SetArch(building, true);
-                }
-            }
-            foreach (Building building in e.Removed)
-            {
-                if (building.indoors.Value != null && building.buildingType.Value == "Winery")
-                {
-                    this.SetArch(building, false);
-                }
-            }
+            foreach (Building building in e.Added.Where(this.IsWinery))
+                this.SetArch(building, true);
+            foreach (Building building in e.Removed.Where(this.IsWinery))
+                this.SetArch(building, false);
         }
         /*
          * END EDIT WINERY WIDTH
@@ -794,7 +802,7 @@ namespace SauvignonInStardew
             if (this.Config.DistillerProfessionBool && Game1.player.professions.Contains(77) && !Game1.player.professions.Contains(5))
                 Game1.player.professions.Remove(4);
 
-            // load save data
+            // mark winery buildings
             foreach (Building b in Game1.getFarm().buildings)
             {
                 foreach (var pair in data.WineryCoords)
@@ -802,10 +810,7 @@ namespace SauvignonInStardew
                     if (b.tileX.Value == pair.X && b.tileY.Value == pair.Y && b.buildingType.Value.Equals("Slime Hutch"))
                     {
                         b.buildingType.Value = "Winery";
-                        b.indoors.Value.mapPath.Value = "Maps\\Winery";
-                        b.indoors.Value.updateMap();
-                        this.Helper.Reflection.GetField<NetArray<bool, NetBool>>(b.indoors.Value, "waterSpots").GetValue().Clear(); // avoid lag due to the game trying to set a non-existent tile's property in SlimeHutch::UpdateWhenCurrentLocation
-                        this.SetArch(b, true);
+                        this.JustRestoredWineries = true;
                     }
                 }
             }
@@ -1115,7 +1120,14 @@ namespace SauvignonInStardew
          * 
          */
 
-
+        /// <summary>Get whether a building is a winery.</summary>
+        /// <param name="building">The building to check.</param>
+        private bool IsWinery(Building building)
+        {
+            return
+                building.indoors.Value != null
+                && building.buildingType.Value == "Winery";
+        }
 
         /*
          * PATCH METHOD FOR HARMONY

@@ -7,6 +7,7 @@
 * Fixed errors due to broken syntax in the i18n files.
 * Fixed errors when a winery is outside the map bounds (e.g. because a custom map was removed).
 * Fixed lag inside the winery for some players.
+* Fixed exit not always putting players in front of the winery.
 
 ## 1.9
 * HOPEFULLY fixed Distiller craft bug.
