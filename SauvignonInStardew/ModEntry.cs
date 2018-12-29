@@ -456,15 +456,15 @@ namespace SauvignonInStardew
 
 
 
-            /*
-             * RESTORE WINERY DATA AFTER MENU EXITS
-             * 
-             * ADD WINERY TO CARPENTER MENU
-             * 
-             * CHANGE FARMING LEVEL UP 10 MENU TO DISTILLER MENU
-             * 
-             * SAVE BED TIME FOR KEG BONUS OVERNIGHT
-             */
+        /*
+         * RESTORE WINERY DATA AFTER MENU EXITS
+         * 
+         * ADD WINERY TO CARPENTER MENU
+         * 
+         * CHANGE FARMING LEVEL UP 10 MENU TO DISTILLER MENU
+         * 
+         * SAVE BED TIME FOR KEG BONUS OVERNIGHT
+         */
         /// <summary>Raised after a game menu is opened, closed, or replaced.</summary>
         /// <param name="sender">The event sender.</param>
         /// <param name="e">The event arguments.</param>
@@ -613,7 +613,7 @@ namespace SauvignonInStardew
             var tilesheet = farm.map.TileSheets.FirstOrDefault(sheet => sheet.ImageSource != null && (sheet.ImageSource.Contains("outdoor") || sheet.ImageSource.Contains("Outdoor")));
 
             // validate
-            if ((building.tileX.Value + maxOffset.X) >= layer.LayerHeight || (building.tileY.Value + maxOffset.Y) >= layer.LayerHeight)
+            if ((building.tileX.Value + maxOffset.X) >= layer.LayerWidth || (building.tileY.Value + maxOffset.Y) >= layer.LayerHeight)
             {
                 this.Monitor.Log($"Didn't apply map changes for winery at ({building.tileX.Value}, {building.tileY.Value}) because it's outside the map bounds.", LogLevel.Warn);
                 return;
