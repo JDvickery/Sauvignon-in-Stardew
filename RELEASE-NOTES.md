@@ -6,7 +6,7 @@
 * Updated for Stardew Valley 1.3.32, SMAPI 2.9, and the upcoming SMAPI 3.0.
 * Fixed errors due to broken syntax in the i18n files.
 * Fixed errors when a winery is outside the map bounds (e.g. because a custom map was removed).
-* Fixed the new assets not getting copied into the Mods folder or release zip.
+* Fixed lag inside the winery for some players.
 
 ## 1.9
 * HOPEFULLY fixed Distiller craft bug.

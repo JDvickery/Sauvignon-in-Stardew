@@ -6,6 +6,7 @@ using System.Reflection;
 using Harmony;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Netcode;
 using Newtonsoft.Json;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -803,6 +804,7 @@ namespace SauvignonInStardew
                         b.buildingType.Value = "Winery";
                         b.indoors.Value.mapPath.Value = "Maps\\Winery";
                         b.indoors.Value.updateMap();
+                        this.Helper.Reflection.GetField<NetArray<bool, NetBool>>(b.indoors.Value, "waterSpots").GetValue().Clear(); // avoid lag due to the game trying to set a non-existent tile's property in SlimeHutch::UpdateWhenCurrentLocation
                         this.SetArch(b, true);
                     }
                 }
