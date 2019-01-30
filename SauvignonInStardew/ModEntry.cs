@@ -16,7 +16,6 @@ using StardewValley.Locations;
 using StardewValley.Menus;
 using StardewValley.Objects;
 using xTile;
-using xTile.Layers;
 using xTile.Tiles;
 using SObject = StardewValley.Object;
 
@@ -734,59 +733,65 @@ namespace SauvignonInStardew
                 this.HoursSlept = ((2400 - this.BedTime) + Game1.timeOfDay);
             }
 
-            //reduce time for kegs overnight
-            foreach (Building b in Game1.getFarm().buildings)
+            if (Context.IsMainPlayer)
             {
-                if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
+                //reduce time for kegs overnight
+                foreach (Building b in Game1.getFarm().buildings)
                 {
-                    foreach (SObject o in b.indoors.Value.Objects.Values)
+                    if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
                     {
-                        if (o.Name.Equals("Keg"))
+                        foreach (SObject o in b.indoors.Value.Objects.Values)
                         {
-                            o.MinutesUntilReady -= (int)Math.Round(this.HoursSlept * 0.3, 0);
+                            if (o.Name.Equals("Keg"))
+                            {
+                                o.MinutesUntilReady -= (int)Math.Round(this.HoursSlept * 0.3, 0);
+                            }
                         }
                     }
                 }
-            }
 
-            //save coordinates to json file and replace with slime hutch
-            this.SaveData.WineryCoords.Clear();
-            foreach (Building b in Game1.getFarm().buildings)
-            {
-                if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
+                //save coordinates to json file and replace with slime hutch
+                this.SaveData.WineryCoords.Clear();
+                foreach (Building b in Game1.getFarm().buildings)
                 {
-                    this.SaveData.WineryCoords.Add(new Point(b.tileX.Value, b.tileY.Value));
-                    b.buildingType.Value = "Slime Hutch";
-                    b.indoors.Value.mapPath.Value = "Maps\\SlimeHutch";
-                    b.indoors.Value.updateMap();
-                    this.SetArch(b, false);
+                    if (b.indoors.Value != null && b.buildingType.Value.Equals("Winery"))
+                    {
+                        this.SaveData.WineryCoords.Add(new Point(b.tileX.Value, b.tileY.Value));
+                        b.buildingType.Value = "Slime Hutch";
+                        b.indoors.Value.mapPath.Value = "Maps\\SlimeHutch";
+                        b.indoors.Value.updateMap();
+                        this.SetArch(b, false);
+                    }
                 }
+                this.Helper.Data.WriteSaveData("data", this.SaveData);
             }
-            this.Helper.Data.WriteSaveData("data", this.SaveData);
         }
 
         /// <summary>Read mod data stored in the save file.</summary>
         private SaveData ReadSaveData()
         {
-            // from save file
+            if (Context.IsMainPlayer)
             {
-                SaveData data = this.Helper.Data.ReadSaveData<SaveData>("data");
-                if (data != null)
-                    return data;
-            }
-
-            // from legacy JSON file
-            {
-                FileInfo legacyFile = new FileInfo(Path.Combine($"{Constants.CurrentSavePath}", "Winery_Coords.json"));
-                var data = legacyFile.Exists
-                    ? JsonConvert.DeserializeObject<List<KeyValuePair<int, int>>>(File.ReadAllText(legacyFile.FullName))
-                    : null;
-                if (data != null)
+                // from save file
                 {
-                    return new SaveData
+                    SaveData data = this.Helper.Data.ReadSaveData<SaveData>("data");
+                    if (data != null)
+                        return data;
+                }
+
+                // from legacy JSON file
+                {
+                    FileInfo legacyFile = new FileInfo(Path.Combine($"{Constants.CurrentSavePath}", "Winery_Coords.json"));
+                    var data = legacyFile.Exists
+                        ? JsonConvert.DeserializeObject<List<KeyValuePair<int, int>>>(File.ReadAllText(legacyFile.FullName))
+                        : null;
+                    if (data != null)
                     {
-                        WineryCoords = data.Select(p => new Point(p.Key, p.Value)).ToList()
-                    };
+                        return new SaveData
+                        {
+                            WineryCoords = data.Select(p => new Point(p.Key, p.Value)).ToList()
+                        };
+                    }
                 }
             }
 
