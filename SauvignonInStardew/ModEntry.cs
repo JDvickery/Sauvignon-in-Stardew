@@ -380,7 +380,9 @@ namespace SauvignonInStardew
                     b.indoors.Value.mapPath.Value = "Maps\\Winery";
                     b.indoors.Value.updateMap();
                     b.updateInteriorWarps();
-                    this.Helper.Reflection.GetField<NetArray<bool, NetBool>>(b.indoors.Value, "waterSpots").GetValue().Clear(); // avoid lag due to the game trying to set a non-existent tile's property in SlimeHutch::UpdateWhenCurrentLocation
+                    this.Helper.Reflection
+                        .GetField<NetArray<bool, NetBool>>(b.indoors.Value, "waterSpots", required: false)
+                        ?.GetValue().Clear(); // avoid lag due to the game trying to set a non-existent tile's property in SlimeHutch::UpdateWhenCurrentLocation
                     this.SetArch(b, true);
                 }
             }
