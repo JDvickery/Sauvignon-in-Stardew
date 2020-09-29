@@ -14,16 +14,15 @@ namespace SauvignonInStardew
         *********/
         /// <summary>Provides an API for checking and changing input state.</summary>
         private readonly IInputHelper Input;
-
         private Color FirstProfessionColor;
         private Color SecondProfessionColor;
         private Color ThirdProfessionColor;
 
-        private readonly List<string> FirstProfessionDescription = new List<string>() { "Artisan", "Artisan goods (cheese, truffle oil, cloth, etc.) worth 40% more." };
+        private readonly List<string> FirstProfessionDescription = new List<string>() { };
 
-        private readonly List<string> SecondProfessionDescription = new List<string>() { "Agriculturist", "All crops grow 10% faster." };
+        private readonly List<string> SecondProfessionDescription = new List<string>() { };
 
-        private readonly List<string> ThirdProfessionDescription = new List<string>() { "Distiller", "Alcohol (beer, wine, etc.) worth 40% more." };
+        private readonly List<string> ThirdProfessionDescription = new List<string>() { };
 
         private readonly string Title = "Level 10 Farming";
 
@@ -43,14 +42,26 @@ namespace SauvignonInStardew
         /*********
         ** Public methods
         *********/
-        public DistillerMenu(Texture2D icon, IInputHelper input)
+        public DistillerMenu(Texture2D icon, IModHelper helper)
         {
             this.Icon = icon;
-            this.Input = input;
+            this.Input = helper.Input;
             this.TimerBeforeStart = 250;
             this.isActive = true;
             this.height = 512;
             this.width = 1344;
+
+            this.FirstProfessionDescription.Add(helper.Translation.Get("professionTitle_Artisan"));
+            this.FirstProfessionDescription.Add(helper.Translation.Get("professionMenuDescription_Artisan"));
+
+            this.SecondProfessionDescription.Add(helper.Translation.Get("professionTitle_Agriculturist"));
+            this.SecondProfessionDescription.Add(helper.Translation.Get("professionMenuDescription_Agriculturist"));
+
+            this.ThirdProfessionDescription.Add(helper.Translation.Get("professionTitle_Distiller"));
+            this.ThirdProfessionDescription.Add(helper.Translation.Get("professionMenuDescription_Distiller"));
+
+            this.Title = helper.Translation.Get("menuTitle");
+            this.Text = helper.Translation.Get("menuText");
 
             Game1.player.completelyStopAnimatingOrDoingAction();
             this.xPositionOnScreen = 100;
@@ -76,10 +87,10 @@ namespace SauvignonInStardew
                 // third profession
                 new ClickableComponent(new Rectangle((this.width / 3) * 2 + this.xPositionOnScreen, this.yPositionOnScreen + 128, this.width / 3, this.height), "")
                 {
-                    myID = 104,
+    myID = 104,
                     leftNeighborID = 103
                 }
-            };
+};
             this.snapToDefaultClickableComponent();
         }
 

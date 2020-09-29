@@ -16,6 +16,7 @@ using StardewValley.Locations;
 using StardewValley.Menus;
 using StardewValley.Objects;
 using xTile;
+using xTile.Layers;
 using xTile.Tiles;
 using SObject = StardewValley.Object;
 
@@ -86,7 +87,10 @@ namespace SauvignonInStardew
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
 
             //Event for showing time remaining on hover
-            helper.Events.Display.Rendered += this.OnRendered;
+            if (this.Config.ShowHelperInsideWinery)
+            {
+                helper.Events.Display.Rendered += this.OnRendered;
+            }
 
             //Events for editing Winery width
             helper.Events.World.BuildingListChanged += this.OnBuildingListChanged;
@@ -449,8 +453,8 @@ namespace SauvignonInStardew
                             if (this.Config.DistillerProfessionBool && skillBar.containsPoint(Game1.getMouseX(), Game1.getMouseY()) && skillBar.myID == 200)
                             {
                                 //local variables
-                                string textTitle = "Distiller";
-                                string textDescription = "Alcohol worth 40% more.";
+                                string textTitle = this.Helper.Translation.Get("professionTitle_Distiller");
+                                string textDescription = this.Helper.Translation.Get("professionHoverDescription");
 
                                 //draw
                                 //icon
@@ -533,7 +537,7 @@ namespace SauvignonInStardew
                     int level = this.Helper.Reflection.GetField<int>(lvlMenu, "currentLevel").GetValue();
                     if (skill == 0 && level == 0)
                     {
-                        Game1.activeClickableMenu = new DistillerMenu(this.DistillerIcon, this.Helper.Input);
+                        Game1.activeClickableMenu = new DistillerMenu(this.DistillerIcon, this.Helper);
                     }
                 }
             }
@@ -551,8 +555,8 @@ namespace SauvignonInStardew
                     BluePrint wineryBluePrint = new BluePrint("Slime Hutch")
                     {
                         name = "Winery",
-                        displayName = "Winery",
-                        description = "Kegs and Casks inside work 30% faster and display time remaining.",
+                        displayName = this.Helper.Translation.Get("wineryName"),
+                        description = this.Helper.Translation.Get("wineryDescription"),
                         daysToConstruct = 4,//4
                         moneyRequired = 40000 //40000
                     };
@@ -572,8 +576,8 @@ namespace SauvignonInStardew
                     BluePrint kegRoomBluePrint = new BluePrint("Slime Hutch")
                     {
                         name = "Winery2",
-                        displayName = "Keg Room",
-                        description = "Adds a room to your Winery that houses huge kegs able to process large quantities of products.",
+                        displayName = this.Helper.Translation.Get("kegRoomDislplayName"),
+                        description = this.Helper.Translation.Get("kegRoomDescription"),
                         daysToConstruct = 0,
                         moneyRequired = 450000,
                         blueprintType = "Upgrades",
@@ -963,7 +967,7 @@ namespace SauvignonInStardew
 
         private void SetBonusPrice()
         {
-            foreach (Item item in Game1.getFarm().shippingBin)
+            foreach (Item item in Game1.getFarm().getShippingBin(Game1.player))
             {
                 if (this.IsDistiller() && item != null && item is SObject booze && this.IsAlcohol(item) && booze.getHealth() != booze.Price)
                 {
@@ -1105,14 +1109,14 @@ namespace SauvignonInStardew
 
                                 if (obj.Name.Equals("Keg") && obj.MinutesUntilReady > 0)
                                 {
-                                    textTimeRemaining = $"{Math.Round((obj.MinutesUntilReady * 0.6) / 84, 1)} minutes";
+                                    textTimeRemaining = $"{Math.Round((obj.MinutesUntilReady * 0.6) / 84, 1)} {this.Helper.Translation.Get("minutes")}";
 
                                     IClickableMenu.drawHoverText(Game1.spriteBatch, textTimeRemaining, Game1.smallFont, 0, 0, -1, obj.heldObject.Value.Name.Length > 0 ? obj.heldObject.Value.Name : null);
                                 }
 
                                 if (obj is Cask c && c.daysToMature.Value > 0)
                                 {
-                                    textTimeRemaining = $"{Math.Round(c.daysToMature.Value * 0.6, 1)} days";
+                                    textTimeRemaining = $"{Math.Round(c.daysToMature.Value * 0.6, 1)} {this.Helper.Translation.Get("days")}";
 
                                     IClickableMenu.drawHoverText(Game1.spriteBatch, textTimeRemaining, Game1.smallFont, 0, 0, -1, obj.heldObject.Value.Name.Length > 0 ? obj.heldObject.Value.Name : null);
                                 }
